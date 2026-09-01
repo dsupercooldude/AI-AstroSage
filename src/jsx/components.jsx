@@ -32,7 +32,7 @@ window.Icon = new Proxy(IconComponent, {
 });
 
 // ErrorBoundary component for graceful crash recovery
-const BaseComponent = (window.React && window.React.Component) ? window.React.Component : class {
+const BaseComponent = (typeof window !== 'undefined' && window.React && window.React.Component) ? window.React.Component : class {
   constructor(props) { this.props = props; this.state = {}; }
   setState(updater) { if (typeof updater === 'function') this.state = Object.assign({}, this.state, updater(this.state)); else this.state = Object.assign({}, this.state, updater); }
 };
