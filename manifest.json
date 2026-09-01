@@ -1,0 +1,16 @@
+{
+"name": "Graha Ledger Jyotish",
+"short_name": "Graha Ledger",
+"description": "Vedic Astrology Companion and Daily Gochara Engine",
+"start_url": "/",
+"display": "standalone",
+"background_color": "#14162B",
+"theme_color": "#14162B",
+"icons": [
+{
+"src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Om_symbol.svg/512px-Om_symbol.svg.png",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}

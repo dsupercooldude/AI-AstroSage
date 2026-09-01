@@ -1,0 +1,11 @@
+{
+  "name": "Graha Ledger",
+  "description": "Enterprise Vedic Jyotish and Biorhythm Vault for astrological calculations, charts, and personal dossiers.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
