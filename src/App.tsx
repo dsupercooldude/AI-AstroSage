@@ -459,7 +459,7 @@ export default function App() {
   const activeChart = activeProfile ? charts[activeProfile.id] : null;
 
   return (
-    <div className="min-h-screen w-full font-sans pb-16 bg-transparent text-slate-200 selection:bg-indigo-500 selection:text-white relative">
+    <div className="min-h-screen w-full font-sans pb-16 bg-transparent text-slate-200 selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
       <datalist id="gotras">{(window as any).GOTRAS?.map((g: string) => (<option key={g} value={g} />))}</datalist>
       <datalist id="jaatis">{(window as any).JAATIS?.map((j: string) => (<option key={j} value={j} />))}</datalist>
 

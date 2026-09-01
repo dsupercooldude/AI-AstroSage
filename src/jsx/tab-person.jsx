@@ -89,9 +89,21 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
 
   const deepSynthesis = window.generateDeepSynthesis ? window.generateDeepSynthesis(pr, ch, bioScores || {p:0,e:0,i:0}, date) : {};
   const dynamicRx = deepSynthesis.dynamicPrescription || {};
-  const activeKundali = (kundaliView === "chalit" && ch.chalit) ? ch.chalit : (ch[kundaliView] || ch.d1);
-  const chartNames = { d1: "Lagna (D1)", chalit: "Bhava Chalit", d9: "Navamsha (D9)", d3: "Drekkana (D3)", d7: "Saptamsha (D7)", d10: "Dashamsha (D10)" };
+  const activeKundali = ((kundaliView === "chalit" || kundaliView === "kp") && ch.chalit) ? ch.chalit : (ch[kundaliView] || ch.d1);
+  const chartNames = { d1: "Lagna (D1)", chalit: "Bhava Chalit", d9: "Navamsha (D9)", d3: "Drekkana (D3)", d7: "Saptamsha (D7)", d10: "Dashamsha (D10)", kp: "KP Cuspal Chart" };
   const kundaliTitle = chartNames[kundaliView] || "Kundali";
+
+
+  const getTimelineData = () => {
+    if (!ch || !ch.dasha || !window.getAntardashas) return null;
+    const activeD = ch.dasha.find(d => currentYear >= d.start && currentYear < d.end);
+    if (!activeD) return null;
+    return {
+      mahadasha: activeD,
+      antardashas: window.getAntardashas(activeD.lord, activeD.start, activeD.end)
+    };
+  };
+  const timelineData = getTimelineData();
 
   return (
     <div className="space-y-6 pb-12 gl-fadein mt-4">
@@ -205,7 +217,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
     { id: "d9", label: "D9 Navamsha" },
     { id: "d3", label: "D3 Drekkana" },
     { id: "d7", label: "D7 Saptamsha" },
-    { id: "d10", label: "D10 Dashamsha" }
+    { id: "d10", label: "D10 Dashamsha" }, { id: "kp", label: "KP System" }
   ].map((view) => (
                 <button
                   key={view.id}
@@ -228,7 +240,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
               </button>
               {showStyleMenu && (
                 <div className="absolute right-0 mt-2 w-32 bg-[#18181b] border border-[#27272a] rounded-2xl shadow-2xl overflow-hidden z-50 p-1">
-                  {["NORTH", "SOUTH", "EAST", "KP"].map(s => (
+                  {["NORTH", "SOUTH", "EAST"].map(s => (
                     <div key={s} onClick={() => { setChartStyle(s); setShowStyleMenu(false); }} className={`px-3 py-2 text-xs font-mono rounded-xl cursor-pointer hover:bg-[#27272a] ${chartStyle === s ? 'text-white bg-indigo-600 font-bold' : 'text-slate-400'}`}>
                       {s}
                     </div>
@@ -239,7 +251,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           </div>
         </div>
         <div className="flex justify-center items-center min-h-[300px] relative z-10 p-4 bg-[#09090b] rounded-2xl border border-[#27272a]">
-          {window.KundaliRenderer && <window.KundaliRenderer ac={activeKundali} ch={ch} kpTable={ch.kpTable} style={formattedStyle} isExpert={isExpert} titleDesc={kundaliTitle} />}
+          {window.KundaliRenderer && <window.KundaliRenderer ac={activeKundali} ch={ch} kpTable={ch.kpTable} style={formattedStyle} isExpert={isExpert} isKpView={kundaliView === "kp"} titleDesc={kundaliTitle} />}
         </div>
       </div>
 
@@ -249,6 +261,35 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vimshottari Dasha Drilldown</h3>
           </div>
+          
+          {timelineData && (
+            <div className="mb-6 p-4 bg-[#09090b] rounded-2xl border border-[#27272a] overflow-hidden">
+              <div className="text-[9px] uppercase font-mono tracking-widest text-slate-500 mb-3 flex items-center justify-between">
+                <span>Active Mahadasha Timeline: <span className="text-indigo-400 font-bold">{timelineData.mahadasha.lord}</span></span>
+                <span>{Math.floor(timelineData.mahadasha.start)} - {Math.floor(timelineData.mahadasha.end)}</span>
+              </div>
+              <div className="overflow-x-auto beauty-scroll pb-4 -mb-4">
+                <div className="flex items-center min-w-max gap-1.5 px-1 py-2">
+                  {timelineData.antardashas.map((antar, idx) => {
+                    const isActive = currentYear >= antar.start && currentYear < antar.end;
+                    const isPast = currentYear >= antar.end;
+                    const duration = antar.end - antar.start;
+                    const w = Math.max(60, Math.min(120, duration * 30)); 
+                    return (
+                      <div key={idx} style={{ width: `${w}px` }} className={`relative flex flex-col items-center justify-center h-12 rounded-xl border transition-all ${
+                        isActive ? 'bg-indigo-600 border-indigo-400 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] z-10 scale-110' :
+                        isPast ? 'bg-[#121214] border-[#27272a] text-slate-600' :
+                        'bg-[#18181b] border-[#27272a] text-slate-400 opacity-90'
+                      }`}>
+                        <div className="text-[10px] font-bold font-mono uppercase">{antar.lord}</div>
+                        <div className="text-[8px] font-mono mt-0.5 opacity-80">{Math.floor(antar.start)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
             {ch.dasha?.map((d, i) => {
               const isActive = currentYear >= d.start && currentYear < d.end;

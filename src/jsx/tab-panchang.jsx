@@ -77,7 +77,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
   }, [d, settings?.monthSystem, utc, panchang]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 gl-fadein pb-20">
+    <div className="max-w-7xl mx-auto space-y-6 gl-fadein pb-20 overflow-x-hidden">
       
       {/* HEADER TIER */}
       <div className="bgcard rounded-3xl border border-emerald-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">

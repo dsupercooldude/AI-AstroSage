@@ -2,7 +2,7 @@
 var React = window.React;
 var { useState } = window.React;
 
-window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert }) => {
+window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpView }) => {
   if (!ac) return <div className="p-4 text-center text-xs t60">No Chart Data Available</div>;
 
   const st = style.toLowerCase();
@@ -92,8 +92,8 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert }) => {
         )}
 
         
-        {/* SOUTH INDIAN & KP CHART (GRID) */}
-        {(st === "south" || st === "kp") && (() => {
+        {/* SOUTH INDIAN CHART (GRID) */}
+        {st === "south" && (() => {
           const southGridSigns = ["Pisces", "Aries", "Taurus", "Gemini", "Aquarius", null, null, "Cancer", "Capricorn", null, null, "Leo", "Sagittarius", "Scorpio", "Libra", "Virgo"];
           
           const signToHouse = {};
@@ -141,7 +141,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert }) => {
       </div>
 
       {/* EXPERT KP TABLE */}
-      {isExpert && kpTable && (
+      {((isExpert || isKpView) && kpTable) && (
         <div className="overflow-x-auto pt-4 gl-fadein w-full">
           <table className="w-full text-[10px] font-mono text-left border-collapse bg-black/40 border border-white/10 rounded-xl shadow-lg">
             <thead>

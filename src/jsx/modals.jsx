@@ -288,7 +288,6 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
               <option value="north" className="bg-[#121426] text-white">North Indian</option>
               <option value="south" className="bg-[#121426] text-white">South Indian</option>
               <option value="east" className="bg-[#121426] text-white">East Indian</option>
-              <option value="kp" className="bg-[#121426] text-white">KP System</option>
             </select>
           </div>
           <div>
