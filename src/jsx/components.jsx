@@ -279,7 +279,7 @@ window.DataConfidenceBadge = ({ localData, context }) => {
     };
 
     return (
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
             {!validating && (
                 <button 
                     onClick={validateOnline}

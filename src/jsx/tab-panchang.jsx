@@ -77,7 +77,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
   }, [d, settings?.monthSystem, utc, panchang]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 gl-fadein pb-20 overflow-x-hidden">
+    <div className="max-w-7xl mx-auto space-y-6 gl-fadein pb-20">
       
       {/* HEADER TIER */}
       <div className="bgcard rounded-3xl border border-emerald-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
@@ -282,7 +282,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
         </h3>
         <p className="text-xs t50 font-mono mb-4">Calculated locally via Drik Ephemeris Math Engine.</p>
         <div className="overflow-x-auto beauty-scroll pb-2">
-          <table className="w-full text-left text-xs font-mono whitespace-nowrap border-collapse">
+          <table className="w-full min-w-max text-left text-xs font-mono whitespace-nowrap border-collapse">
             <thead>
               <tr className="border-b border-white/10 t50 uppercase text-[9px]">
                 <th className="pb-3 pr-4">Date</th>

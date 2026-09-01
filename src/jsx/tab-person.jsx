@@ -170,10 +170,10 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
         </h3>
         {!isExpert ? (
           <div className="space-y-3 text-xs text-slate-300 leading-relaxed font-mono">
-            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a]"><strong className="text-indigo-300 font-bold block mb-1">The Core Self:</strong> {deepSynthesis.basicKundali}</div>
-            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a]"><strong className="text-blue-300 font-bold block mb-1">Time & Cycles:</strong> {deepSynthesis.basicDasha}</div>
-            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a]"><strong className="text-green-300 font-bold block mb-1">Energy & Power:</strong> {deepSynthesis.basicPower}</div>
-            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a]"><strong className="text-amber-300 block mb-1 font-bold">Daily Synchronization:</strong><span>{deepSynthesis.basicBio || "Your daily physical, emotional, and intellectual cycles are calculated below from your birth date and selected prediction date."}</span></div>
+            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a] whitespace-pre-wrap break-words"><strong className="text-indigo-300 font-bold block mb-1">The Core Self:</strong> {deepSynthesis.basicKundali}</div>
+            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a] whitespace-pre-wrap break-words"><strong className="text-blue-300 font-bold block mb-1">Time & Cycles:</strong> {deepSynthesis.basicDasha}</div>
+            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a] whitespace-pre-wrap break-words"><strong className="text-green-300 font-bold block mb-1">Energy & Power:</strong> {deepSynthesis.basicPower}</div>
+            <div className="p-3 bg-[#09090b] rounded-2xl border border-[#27272a] whitespace-pre-wrap break-words"><strong className="text-amber-300 block mb-1 font-bold">Daily Synchronization:</strong><span>{deepSynthesis.basicBio || "Your daily physical, emotional, and intellectual cycles are calculated below from your birth date and selected prediction date."}</span></div>
           </div>
         ) : (
           <div className="p-4 bg-[#09090b] rounded-2xl border border-[#27272a] text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
