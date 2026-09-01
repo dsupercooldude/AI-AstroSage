@@ -55,6 +55,7 @@ window.AuthModal = ({ onLogin }) => {
     onLogin({ email: normE, emailHash, profiles: prof, settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", ...sett, apiKeys: { ...(sett.apiKeys || {}) } }, requiresPasswordChange: reqChange, mfaEnabled: isMfaEnabled });
   };
   
+  
   const handleSubmit = async (ev) => { 
     ev.preventDefault(); setErr(""); const normE = e.trim().toLowerCase(); 
     try { 
@@ -69,9 +70,18 @@ window.AuthModal = ({ onLogin }) => {
         if(!u) { if (Object.keys(authFile.content.users).length === 0) throw new Error("Empty Vault! Please Sign Up."); throw new Error("Account not found."); } 
         const hashedInput = await CryptoUtils.hashPassword(p); if(u.p !== p && u.p !== hashedInput) throw new Error("Invalid password."); 
         if (u.mfa) { setMode("mfa"); return; } await proceedToVault(normE, emailHash, u.req, !!u.mfa); 
+      } else if(mode === "reset") {
+        const u = authFile.content.users[emailHash]; 
+        if(!u) throw new Error("Account not found.");
+        const gen="Om-"+Math.random().toString(36).slice(-6)+"!"; const hashedPw = await CryptoUtils.hashPassword(gen); 
+        authFile.content.users[emailHash].p = hashedPw;
+        authFile.content.users[emailHash].req = true;
+        await AppDB.saveFile('gl_auth.json', authFile.content, authFile.sha);
+        setGp(gen); setMode("generated");
       }
     } catch(error) { setErr(error.message); }
   };
+
 
   const handlePasskeyLogin = async () => {
     setErr("");
@@ -111,11 +121,17 @@ window.AuthModal = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bgcard2 p-6 shadow-2xl border border-white/10 text-center"><Icon name="shield-check" size={48} className="mx-auto text-emerald-400 mb-3" /><h2 className="font-serif text-2xl mt-1 mb-2 text-emerald-200">2FA Protected</h2><p className="text-xs t60 mb-5">Enter your 6-digit Authenticator app PIN.</p>
       <form onSubmit={handleMfaSubmit}>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err}</div>}<input required type="text" maxLength="6" value={mfaPin} onChange={ev=>setMfaPin(ev.target.value)} placeholder="000000" className="w-full text-center tracking-[0.5em] font-mono font-bold bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-lg outline-none text-emerald-300 focus:border-emerald-400/50 mb-4"/><button type="submit" className="w-full bg-emerald-500 text-black font-semibold rounded-full py-3 hover:bg-emerald-400 transition">Unlock Vault</button><button type="button" onClick={()=>setMode("login")} className="mt-4 text-[10px] t50 hover:text-white">Cancel</button></form></div></div>
   );
-  if (mode === "generated") return ( <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl border border-emerald-500/40 bgcard2 p-6 text-center shadow-2xl"><h2 className="font-serif text-xl t100 mb-1 text-emerald-300">Account Created</h2><p className="text-xs t75 mb-4">Auto-generated secure password:</p><div className="flex gap-2 items-center justify-center mb-3"><div className="flex-1 p-3 bg-black/40 rounded-xl font-mono text-emerald-300 border border-emerald-500/30 text-base select-all">{gp}</div></div><p className="text-[10px] t50">Save this temporary password.</p><button onClick={()=>setMode("login")} className="w-full rounded-full py-3 text-sm font-semibold bg-emerald-500 text-black mt-5">Proceed to Sign In</button></div></div> );
+  if (mode === "generated") return ( <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl border border-emerald-500/40 bgcard2 p-6 text-center shadow-2xl"><h2 className="font-serif text-xl t100 mb-1 text-emerald-300">Secure Credentials</h2><p className="text-xs t75 mb-4">Auto-generated secure password:</p><div className="flex gap-2 items-center justify-center mb-3"><div className="flex-1 p-3 bg-black/40 rounded-xl font-mono text-emerald-300 border border-emerald-500/30 text-base select-all">{gp}</div></div><p className="text-[10px] t50">Save this temporary password.</p><button onClick={()=>setMode("login")} className="w-full rounded-full py-3 text-sm font-semibold bg-emerald-500 text-black mt-5">Proceed to Sign In</button></div></div> );
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bgcard2 p-6 shadow-2xl border border-white/10 relative">
-      <form onSubmit={handleSubmit}><SageLogo size={44}/><h2 className="text-center font-serif text-2xl mt-1 mb-4 text-amber-200">{mode==="signup"?"Create Account":"Sign In"}</h2>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err}</div>}<div className="space-y-3"><div><label className="text-[10px] t40 uppercase font-mono">Email Address (optional for passkey)</label><input type="email" value={e} onChange={ev=>setE(ev.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>{mode==="login" && <div><label className="text-[10px] t40 uppercase font-mono">Password</label><input type="password" value={p} onChange={ev=>setP(ev.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>}</div><button type="submit" className="w-full bg-amber-400 text-black font-semibold rounded-full py-3 mt-5 hover:bg-amber-300 transition shadow-lg shadow-amber-400/20">{mode==="signup"?"Generate Credentials":"Enter Vault"}</button>{mode==="login" && <button type="button" disabled={passkeyBusy} onClick={handlePasskeyLogin} className="w-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold rounded-full py-3 mt-2 hover:bg-emerald-500/25 transition"><Icon name="fingerprint" size={16} /> {passkeyBusy ? "Verifying Passkey..." : "Use Face ID / Passkey"}</button>}<div className="flex justify-between items-center mt-4"><button type="button" onClick={()=>{setMode(mode==="login"?"signup":"login"); setErr("");}} className="text-[11px] t60 hover:text-white">{mode==="login"?"New User? Quick Sign Up":"Existing User? Sign In"}</button></div></form></div></div>
+      <form onSubmit={handleSubmit}><SageLogo size={44}/><h2 className="text-center font-serif text-2xl mt-1 mb-4 text-amber-200">{mode==="signup"?"Create Account":mode==="reset"?"Reset Password":"Sign In"}</h2>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err}</div>}<div className="space-y-3"><div><label className="text-[10px] t40 uppercase font-mono">Email Address (optional for passkey)</label><input type="email" value={e} onChange={ev=>setE(ev.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>{mode==="login" && <div><label className="text-[10px] t40 uppercase font-mono">Password</label><input type="password" value={p} onChange={ev=>setP(ev.target.value)} className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>}</div><button type="submit" className="w-full bg-amber-400 text-black font-semibold rounded-full py-3 mt-5 hover:bg-amber-300 transition shadow-lg shadow-amber-400/20">{mode==="signup"?"Generate Credentials":mode==="reset"?"Reset Password":"Enter Vault"}</button>{mode==="login" && <button type="button" disabled={passkeyBusy} onClick={handlePasskeyLogin} className="w-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold rounded-full py-3 mt-2 hover:bg-emerald-500/25 transition"><Icon name="fingerprint" size={16} /> {passkeyBusy ? "Verifying Passkey..." : "Use Face ID / Passkey"}</button>}
+<div className="flex justify-between items-center mt-4 flex-wrap gap-2">
+  <button type="button" onClick={()=>{setMode(mode==="login"?"signup":"login"); setErr("");}} className="text-[11px] t60 hover:text-white">{mode==="login"?"New User? Quick Sign Up":"Existing User? Sign In"}</button>
+  {mode === "login" && <button type="button" onClick={()=>{setMode("reset"); setErr("");}} className="text-[11px] text-amber-400 hover:text-amber-300">Forgot Password?</button>}
+  {mode === "reset" && <button type="button" onClick={()=>{setMode("login"); setErr("");}} className="text-[11px] text-amber-400 hover:text-amber-300">Back to Login</button>}
+</div>
+</form></div></div>
   );
 };
 

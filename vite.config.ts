@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
+// Dynamically set the base path for GitHub Pages deployment
+// GITHUB_REPOSITORY is automatically set by GitHub Actions (e.g., "username/repo-name")
+const githubRepo = process.env.GITHUB_REPOSITORY;
+const basePath = githubRepo ? `/${githubRepo.split('/')[1]}/` : './';
+
 export default defineConfig(() => {
   return {
-    base: './',
+    base: basePath,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

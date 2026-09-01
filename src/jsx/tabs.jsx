@@ -6,9 +6,26 @@ window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs,
   const { PersonTab, ReportsTab, PanchangTab, CompatTab, AskTab, WeekTab, MonthTab, PalmistryTab, TarotTab } = window;
   const [tb, setTb] = useState("person");
 
+  const themeMap = {
+    person: "from-indigo-950/20 via-black to-slate-950",
+    reports: "from-blue-950/20 via-black to-cyan-950/10",
+    panchang: "from-amber-950/20 via-black to-orange-950/10",
+    union: "from-pink-950/20 via-black to-rose-950/10",
+    palmistry: "from-violet-950/20 via-black to-purple-950/10",
+    tarot: "from-emerald-950/20 via-black to-teal-950/10",
+    week: "from-indigo-950/20 via-black to-blue-950/10",
+    month: "from-slate-900/30 via-black to-slate-950",
+    ask: "from-fuchsia-950/20 via-black to-indigo-950/10"
+  };
+  const activeTheme = themeMap[tb] || "from-black via-black to-black";
+
+
   return (
+    
     <Fragment>
+      <div className={`fixed inset-0 -z-10 bg-gradient-to-br transition-colors duration-1000 ${activeTheme}`}></div>
       {/* Bento Navigation Bar */}
+
       <div className="flex gap-1.5 overflow-x-auto scrollbar-hide rounded-2xl border border-[#27272a] bg-[#18181b] p-1.5 font-mono text-[11px] shadow-2xl mb-5">
         {[
           { id: "person", l: "Astrology & Dasha", icon: "planet" },
@@ -25,9 +42,7 @@ window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs,
             key={t.id}
             onClick={() => setTb(t.id)}
             className={`flex-1 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 transition-all text-xs ${
-              tb === t.id
-                ? "bg-white text-black font-bold shadow-lg shadow-white/10"
-                : "text-slate-400 hover:text-white hover:bg-[#27272a]/50"
+              tb === t.id ? "bg-white text-black font-bold shadow-lg shadow-white/10" : "text-slate-400 hover:text-white hover:bg-white/5"
             }`}
           >
             <window.Icon name={t.icon} size={14} />
