@@ -27,7 +27,7 @@ window.SetupModal = ({ onConfig }) => {
   
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bgcard2 p-6 shadow-2xl border border-white/10">
-      <form onSubmit={async(e)=>{ e.preventDefault(); setErr(""); AppDB.setConfig(o,r,t); try{ await AppDB.callApi('GET',''); onConfig(); }catch(er){ if(er.message==="404") { onConfig(); } else { setErr("Token Invalid or Repo Missing."); AppDB.clearConfig(); } } }}>
+      <form onSubmit={async(e)=>{ e.preventDefault(); setErr(""); await AppDB.setConfig(o,r,t); try{ await AppDB.callApi('GET',''); onConfig(); }catch(er){ if(er.message==="404") { onConfig(); } else { setErr("Token Invalid or Repo Missing."); AppDB.clearConfig(); } } }}>
         <SageLogo size={44}/><h2 className="text-center font-serif text-xl mt-2 mb-4 text-amber-200">Connect Cloud Vault</h2>
         {err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err}</div>}
         <div className="space-y-3">
@@ -47,8 +47,8 @@ window.AuthModal = ({ onLogin }) => {
   
   const proceedToVault = async (normE, emailHash, reqChange, isMfaEnabled) => {
     const vaultFile = await AppDB.getFile(`gl_vault_${emailHash}.json`);
-    const decodedProfiles = typeof vaultFile.content.profiles === 'string' ? CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
-    const decodedSettings = typeof vaultFile.content.settings === 'string' ? CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
+    const decodedProfiles = typeof vaultFile.content.profiles === 'string' ? await CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
+    const decodedSettings = typeof vaultFile.content.settings === 'string' ? await CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
     const prof = typeof decodedProfiles === 'string' ? JSON.parse(decodedProfiles) : (decodedProfiles || []);
     const sett = typeof decodedSettings === 'string' ? JSON.parse(decodedSettings) : (decodedSettings || {});
     try { localStorage.setItem('gl_active_user', JSON.stringify({ email: normE, emailHash, mfaEnabled: isMfaEnabled })); } catch(ex){}
@@ -101,7 +101,7 @@ window.AuthModal = ({ onLogin }) => {
     ev.preventDefault(); setErr(""); const normE = e.trim().toLowerCase();
     try {
       const emailHash = await AppDB.hashKey(normE); let authFile = await AppDB.getFile('gl_auth.json'); const u = authFile.content.users[emailHash];
-      const secret = CryptoUtils.decrypt(u.mfa); if (!window.OTPAuth) throw new Error("Authenticator library missing.");
+      const secret = await CryptoUtils.decrypt(u.mfa); if (!window.OTPAuth) throw new Error("Authenticator library missing.");
       const totp = new window.OTPAuth.TOTP({ secret: secret }); if (totp.validate({ token: mfaPin, window: 1 }) === null) throw new Error("Invalid 2FA PIN.");
       await proceedToVault(normE, emailHash, u.req, true);
     } catch(err) { setErr(err.message); }
@@ -136,7 +136,7 @@ window.AdminAuthModal = ({ u, onClose, onAuthenticated }) => {
       if (!adminFile.content.adminUser) { const hashedDefault = await CryptoUtils.hashPassword(pwd); adminFile.content = { adminUser: adminUser.trim().toLowerCase(), p: hashedDefault, mfa: null }; await AppDB.saveFile('gl_admin.json', adminFile.content, adminFile.sha); alert("Admin Vault initialized with these credentials."); onAuthenticated(); return; }
       const normAdmin = adminUser.trim().toLowerCase(); if (adminFile.content.adminUser !== normAdmin) throw new Error("Invalid Admin Username.");
       const hashedInput = await CryptoUtils.hashPassword(pwd); if (adminFile.content.p !== pwd && adminFile.content.p !== hashedInput) throw new Error("Invalid Master Admin Password.");
-      if (adminFile.content.mfa) { const secret = CryptoUtils.decrypt(adminFile.content.mfa); const totp = new window.OTPAuth.TOTP({ secret }); if (totp.validate({ token: mfa, window: 1 }) === null) throw new Error("Invalid Admin 2FA PIN."); }
+      if (adminFile.content.mfa) { const secret = await CryptoUtils.decrypt(adminFile.content.mfa); const totp = new window.OTPAuth.TOTP({ secret }); if (totp.validate({ token: mfa, window: 1 }) === null) throw new Error("Invalid Admin 2FA PIN."); }
       onAuthenticated();
     } catch (error) { setErr(error.message); }
   };
@@ -154,9 +154,9 @@ window.AdminAuthModal = ({ u, onClose, onAuthenticated }) => {
 window.AdminConsoleModal = ({ onClose, onResetDb }) => {
   const { Icon, AppDB, CryptoUtils } = window;
   const [o, setO] = useState(AppDB.config?.owner || ""); const [r, setR] = useState(AppDB.config?.repo || ""); const [t, setT] = useState(AppDB.config?.token || ""); const [adminMfaSetup, setAdminMfaSetup] = useState(null);
-  const handleSaveDb = (e) => { e.preventDefault(); if(!confirm("Update Database Configuration?")) return; AppDB.setConfig(o, r, t); alert("Database configuration updated successfully."); onClose(); };
+  const handleSaveDb = async (e) => { e.preventDefault(); if(!confirm("Update Database Configuration?")) return; await AppDB.setConfig(o, r, t); alert("Database configuration updated successfully."); onClose(); };
   const enableAdmin2FA = () => { const secret = new window.OTPAuth.Secret({ size: 20 }).base32; const totp = new window.OTPAuth.TOTP({ issuer: "Graha Ledger Admin", label: "MasterAdmin", algorithm: "SHA1", digits: 6, period: 30, secret: secret }); const uri = totp.toString(); setAdminMfaSetup({ secret, qr: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(uri)}`, pin: '' }); };
-  const verifyAdmin2FA = async () => { const totp = new window.OTPAuth.TOTP({ secret: adminMfaSetup.secret }); if (totp.validate({ token: adminMfaSetup.pin, window: 1 }) === null) return alert("Invalid PIN."); let adminFile = await AppDB.getFile('gl_admin.json'); adminFile.content.mfa = CryptoUtils.encrypt(adminMfaSetup.secret); await AppDB.saveFile('gl_admin.json', adminFile.content, adminFile.sha); alert("Admin 2FA Activated Successfully."); setAdminMfaSetup(null); };
+  const verifyAdmin2FA = async () => { const totp = new window.OTPAuth.TOTP({ secret: adminMfaSetup.secret }); if (totp.validate({ token: adminMfaSetup.pin, window: 1 }) === null) return alert("Invalid PIN."); let adminFile = await AppDB.getFile('gl_admin.json'); adminFile.content.mfa = await CryptoUtils.encrypt(adminMfaSetup.secret); await AppDB.saveFile('gl_admin.json', adminFile.content, adminFile.sha); alert("Admin 2FA Activated Successfully."); setAdminMfaSetup(null); };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" onClick={onClose}><div onClick={e=>e.stopPropagation()} className="w-full max-w-md bgcard2 p-6 rounded-3xl border border-white/10 shadow-2xl gl-fadein max-h-[85vh] overflow-y-auto">
@@ -197,7 +197,7 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
     const totp = new window.OTPAuth.TOTP({ secret: mfaSetup.secret });
     if (totp.validate({ token: mfaSetup.pin, window: 1 }) === null) return alert("Invalid PIN. Please check your Authenticator app and try again.");
     const authDB = await AppDB.getFile("gl_auth.json");
-    authDB.content.users[u.emailHash].mfa = CryptoUtils.encrypt(mfaSetup.secret);
+    authDB.content.users[u.emailHash].mfa = await CryptoUtils.encrypt(mfaSetup.secret);
     await AppDB.saveFile("gl_auth.json", authDB.content, authDB.sha);
     alert("2FA Enabled Successfully! Your vault is securely locked.");
     onMfaSuccess();

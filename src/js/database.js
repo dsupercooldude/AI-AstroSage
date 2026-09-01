@@ -10,14 +10,14 @@ window.AppDB = {
     autoTokenPart1: "ghp_9EnZgUlgWhZaeCP1",
     autoTokenPart2: "3ahADcxI5CTfkj2rStph",
 
-    loadConfig: function() {
+    loadConfig: async function() {
         try {
             // 1. Try to load from browser memory first (Fastest)
             const stored = localStorage.getItem('gl_db_config');
             if (stored) {
                 let decoded;
                 try {
-                    decoded = window.CryptoUtils ? window.CryptoUtils.decrypt(stored) : JSON.parse(stored);
+                    decoded = window.CryptoUtils ? await window.CryptoUtils.decrypt(stored) : JSON.parse(stored);
                 } catch(e) {
                     try { decoded = JSON.parse(stored); } catch(err) {}
                 }
@@ -35,7 +35,7 @@ window.AppDB = {
                     token: this.autoTokenPart1 + this.autoTokenPart2
                 };
                 if (window.CryptoUtils) {
-                    localStorage.setItem('gl_db_config', window.CryptoUtils.encrypt(this.config));
+                    localStorage.setItem('gl_db_config', await window.CryptoUtils.encrypt(this.config));
                 } else {
                     localStorage.setItem('gl_db_config', JSON.stringify(this.config));
                 }
@@ -55,9 +55,9 @@ window.AppDB = {
         }
     },
     
-    setConfig: function(o, r, t) {
+    setConfig: async function(o, r, t) {
         this.config = { owner: o, repo: r, token: t };
-        localStorage.setItem('gl_db_config', window.CryptoUtils.encrypt(this.config));
+        localStorage.setItem('gl_db_config', await window.CryptoUtils.encrypt(this.config));
         localStorage.removeItem('gl_use_local'); // Clear local override
     },
 

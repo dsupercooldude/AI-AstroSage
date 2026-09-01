@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const code = `
 window.CryptoUtils = {
     b64E: s => btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p))),
     b64D: s => decodeURIComponent(atob(s).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')),
@@ -119,3 +121,6 @@ window.CryptoUtils = {
          } catch (err) { return fb(s); }
      }
 };
+`;
+
+fs.writeFileSync('src/js/cryptography.js', code);

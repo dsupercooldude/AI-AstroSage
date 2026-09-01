@@ -13,6 +13,9 @@ window.CompatTab = ({ prs, chs }) => {
     return prs.length >= 2 ? [prs[0].id, prs[1].id] : [prs[0]?.id, prs[0]?.id];
   };
   const [pairIds, setPairIds] = useState(initialPair);
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [tokenUsage, setTokenUsage] = useState(null);
 
   const persistPair = (nextPair) => {
     setPairIds(nextPair);
@@ -62,8 +65,53 @@ window.CompatTab = ({ prs, chs }) => {
       </div>
 
       <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl">
-        <h3 className="font-serif text-lg text-pink-200 mb-2">What it means for the couple</h3>
-        <p className="text-sm t85 leading-relaxed font-mono">{levelText}</p>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-serif text-lg text-pink-200">Deep Relationship Analysis</h3>
+          <button 
+            onClick={async () => {
+              setLoadingAi(true);
+              try { 
+                 const ashtakoot = window.calculateAshtakoot(p1, p2);
+                 const details = `Varna: ${ashtakoot.varna}/1, Vashya: ${ashtakoot.vashya}/2, Tara: ${ashtakoot.tara}/3, Yoni: ${ashtakoot.yoni}/4, Graha Maitri: ${ashtakoot.grahaMaitri}/5, Gana: ${ashtakoot.gana}/6, Bhakoot: ${ashtakoot.bhakoot}/7, Nadi: ${ashtakoot.nadi}/8`;
+                 const prompt = `Analyze marital compatibility between ${p1.name} (Lagna: ${c1.d1.lagna}, Moon: ${c1.moonSign}, Nakshatra: ${c1.nak}) and ${p2.name} (Lagna: ${c2.d1.lagna}, Moon: ${c2.moonSign}, Nakshatra: ${c2.nak}). Their total Ashtakoot score is ${score}/36. Breakdown: ${details}. Provide a deep, insightful Vedic astrological relationship analysis outlining their core dynamics, strengths, and potential karmic challenges.`;
+                 
+                 let ans = "";
+                 if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
+                     const apiRes = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic relationship astrologer.");
+                     if (apiRes && apiRes.text) ans = apiRes.text;
+                 }
+                 if (!ans) {
+                     ans = window.runVedicRuleEngine(prompt, p1, c1, new Date(), "", false);
+                 }
+                 
+                 if (ans) {
+                   setAiAnalysis(ans);
+                   setTokenUsage(Math.floor(ans.length * 0.3));
+                 }
+              } catch (e) {
+                 setAiAnalysis("AI Analysis failed. " + e.message);
+              }
+              setLoadingAi(false);
+            }}
+            disabled={loadingAi}
+            className="text-[9px] uppercase tracking-widest font-mono bg-pink-500/10 text-pink-300 border border-pink-500/30 px-3 py-1.5 rounded-xl hover:bg-pink-500/20 transition flex items-center gap-1.5"
+          >
+            {loadingAi ? <window.Icon name="spinner" className="animate-spin" size={12} /> : <window.Icon name="sparkle" size={12} />}
+            {loadingAi ? "Analyzing..." : "Ask AI"}
+          </button>
+        </div>
+        {!aiAnalysis ? (
+          <p className="text-sm t85 leading-relaxed font-mono">{levelText}</p>
+        ) : (
+          <div className="text-sm t85 leading-relaxed font-mono space-y-2 whitespace-pre-wrap">
+            {aiAnalysis}
+            {tokenUsage && (
+              <div className="mt-3 text-[9px] text-pink-400/70 border-t border-white/10 pt-2 text-right">
+                 ~ {tokenUsage} AI Tokens Used
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

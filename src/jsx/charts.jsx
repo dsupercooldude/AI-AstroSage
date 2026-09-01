@@ -44,7 +44,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert }) => {
         <div className="text-center font-serif text-lg text-amber-200 mb-6">{ac.lagna} Lagna Chart</div>
 
         {/* NORTH INDIAN CHART (DIAMOND SVG) */}
-        {st === "north" && (
+        {st.includes("north") && (
           <div className="relative w-full max-w-[320px] aspect-square border-2 border-amber-400/50 bg-black/60 rounded p-2">
             <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full stroke-amber-400/40" strokeWidth="0.5" fill="none">
               <line x1="0" y1="0" x2="100" y2="100" /><line x1="100" y1="0" x2="0" y2="100" />
@@ -91,30 +91,37 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert }) => {
           </div>
         )}
 
+        
         {/* SOUTH INDIAN & KP CHART (GRID) */}
-        {(st === "south" || st === "kp") && (
-          <div className="grid grid-cols-4 grid-rows-4 w-full max-w-[320px] aspect-square border-2 border-amber-400/50 bg-black/60 rounded" onMouseLeave={() => setHoveredHouse(null)}>
-            {[12,1,2,3, 11,null,null,4, 10,null,null,5, 9,8,7,6].map((h, i) => {
-              const isHovered = hoveredHouse === h;
-              return (
-                <div key={i} className={`border border-amber-400/30 p-1 flex flex-col transition-all ${h ? 'cursor-pointer' : 'bg-transparent border-none'} ${isHovered ? 'bg-amber-400/10 border-amber-400/50' : ''}`}
-                  onMouseEnter={() => h && setHoveredHouse(h)}
-                >
-                  {h && (
-                    <>
-                      <div className="text-[9px] font-mono font-bold text-center text-amber-300 bg-black/40 px-1 py-0.5 rounded mb-1">{h} {h===1 ? '(As)' : ''}</div>
-                      <div className="text-[7px] font-mono t50 text-center mb-1">{ac.houses[h].slice(0,3)}</div>
-                      <div className="flex-1 flex flex-wrap content-center justify-center gap-1.5 font-mono text-[9px] font-bold mt-1">
-                        {getHousePlanets(h).map(renderPlanet)}
-                      </div>
-                      {isHovered && <div className="text-[7px] text-amber-300 mt-1 bg-black/60 px-1 py-0.5 rounded text-center border border-white/10">{houseMeanings[h]}</div>}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {(st === "south" || st === "kp") && (() => {
+          const southGridSigns = ["Pisces", "Aries", "Taurus", "Gemini", "Aquarius", null, null, "Cancer", "Capricorn", null, null, "Leo", "Sagittarius", "Scorpio", "Libra", "Virgo"];
+          
+          const signToHouse = {};
+          if (ac.houses) {
+            Object.entries(ac.houses).forEach(([h, s]) => { signToHouse[s] = parseInt(h); });
+          }
+          
+          return (
+            <div className="grid grid-cols-4 grid-rows-4 w-full max-w-[320px] aspect-square border-2 border-amber-400/50 bg-black/60 rounded" onMouseLeave={() => setHoveredHouse(null)}>
+              {southGridSigns.map((sign, i) => {
+                if (!sign) return <div key={i} className="bg-transparent border-none"></div>;
+                const h = signToHouse[sign];
+                const isHovered = hoveredHouse === h;
+                return (
+                  <div key={i} className={`border border-amber-400/30 p-1 flex flex-col transition-all cursor-pointer ${isHovered ? 'bg-amber-400/10 border-amber-400/50' : ''}`}
+                    onMouseEnter={() => h && setHoveredHouse(h)}
+                  >
+                    <div className="text-[9px] font-mono font-bold text-center text-amber-300 bg-black/40 px-1 py-0.5 rounded mb-1">{sign.slice(0,3)} {h===1 ? '(Lg)' : ''}</div>
+                    <div className="flex-1 flex flex-wrap content-center justify-center gap-1.5 font-mono text-[9px] font-bold mt-1">
+                      {h && getHousePlanets(h).map(renderPlanet)}
+                    </div>
+                    {isHovered && h && <div className="text-[7px] text-amber-300 mt-1 bg-black/60 px-1 py-0.5 rounded text-center border border-white/10">{houseMeanings[h]}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* EAST INDIAN FALLBACK */}
         {st === "east" && (

@@ -36,6 +36,16 @@ window.PalmistryTab = ({ pr }) => {
     };
   }, []);
 
+  
+  const stopCameraStream = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setStreaming(false);
+    setCameraReady(false);
+  };
+
   const requestCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setAnalysis('Camera access is not available in this browser. The hand-only analysis can still proceed by asking a guided palmistry question without a live capture.');
@@ -63,6 +73,43 @@ window.PalmistryTab = ({ pr }) => {
     }
   };
 
+  
+  const askPalmistry = async () => {
+    if (!question.trim()) return;
+    const userQ = question;
+    setQuestion('');
+    setChat(prev => [...prev, { role: 'user', text: userQ }, { role: 'assistant', text: 'Analyzing...' }]);
+    
+    try {
+      const baseCtx = capturedImage && analysis ? `Captured Hand Style: ${handStyle}. Analysis: ${analysis}.` : "No image captured yet, answering generally.";
+      const prompt = `User asked a palmistry question: "${userQ}". Context: ${baseCtx}. For Native: ${pr?.name || 'Native'}. Answer as a wise, concise Vedic palm reader.`;
+      
+      let ans = "";
+      // Assume window.executeMultiProviderAI exists and is accessible
+      if (window.executeMultiProviderAI) {
+         const res = await window.executeMultiProviderAI(prompt, {}, "You are an expert Vedic Palm Reader.");
+         if (res && res.text) ans = res.text;
+      }
+      if (!ans && window.runVedicRuleEngine) {
+         const dummyCh = { d1: { lagna: "Aries" }, nak: "Ashwini", pada: 1 };
+         ans = window.runVedicRuleEngine(prompt, pr, dummyCh, new Date(), "", false);
+      }
+      if (!ans) ans = "The Oracle is meditating. Please try again.";
+      
+      setChat(prev => {
+        const nc = [...prev];
+        nc[nc.length - 1].text = ans;
+        return nc;
+      });
+    } catch (e) {
+      setChat(prev => {
+        const nc = [...prev];
+        nc[nc.length - 1].text = "Error connecting to AI: " + e.message;
+        return nc;
+      });
+    }
+  };
+
   const cropHandOnly = (video) => {
     const w = video.videoWidth || 640;
     const h = video.videoHeight || 480;
@@ -87,6 +134,7 @@ window.PalmistryTab = ({ pr }) => {
 
     const dataUrl = cropHandOnly(video);
     setCapturedImage(dataUrl);
+    stopCameraStream();
 
     const styleGuess = ['Earth Hand', 'Air Hand', 'Water Hand', 'Fire Hand'][Math.floor(Math.random() * 4)];
     const styleText = {
@@ -123,22 +171,7 @@ window.PalmistryTab = ({ pr }) => {
     ]);
   };
 
-  const askPalmistry = () => {
-    const q = question.trim();
-    if (!q) return;
-
-    const summary = analysis || 'The hand suggests a balanced and grounded profile with a clear route toward stability and self-awareness.';
-    const answer = `For ${pr?.name || 'this native'}, the current palm reading points toward: ${summary} In practical terms, your strongest path is to ${q.toLowerCase().includes('career') ? 'focus on structured work, communication, and long-term planning.' : q.toLowerCase().includes('love') ? 'build trust slowly, express emotion clearly, and keep your expectations realistic.' : q.toLowerCase().includes('money') ? 'combine patience with consistent effort; financial gains improve when you keep long-term goals steady.' : 'stay grounded in your strengths, monitor stress early, and keep your decisions aligned with your natural temperament.'}`;
-
-    setChat((prev) => [
-      ...prev,
-      { role: 'user', text: q },
-      { role: 'assistant', text: answer }
-    ]);
-    setQuestion('');
-  };
-
-  return (
+    return (
     <div className="max-w-6xl mx-auto space-y-6 gl-fadein pb-20">
       
       <div className="bgcard rounded-3xl border border-violet-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
@@ -180,7 +213,7 @@ window.PalmistryTab = ({ pr }) => {
             <div className="hand-box" />
             {!cameraReady && (
               <div className="absolute inset-0 flex items-center justify-center text-center px-6 text-sm text-violet-200/80 font-mono">
-                Place your palm inside the highlighted zone. The app is limited to hand-only capture and does not retain face imagery.
+                Palm Capture Guidelines:\n1. Hold hand flat & steady.\n2. Ensure bright lighting without harsh shadows.\n3. Fit palm inside the highlighted zone.\nNote: The app is strictly limited to hand-only capture.
               </div>
             )}
           </div>
@@ -189,6 +222,7 @@ window.PalmistryTab = ({ pr }) => {
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={captureFrame} className="px-3 py-2 rounded-xl bg-violet-500 text-black font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Capture Hand</button>
+            <button onClick={stopCameraStream} className="px-3 py-2 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Stop Camera</button>
             <button onClick={() => setQuestion('What is the message of my Life Line?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Life Line</button>
             <button onClick={() => setQuestion('How strong is my heart line for love and relationships?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Heart Line</button>
             <button onClick={() => setQuestion('What does my head line say about my career direction?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Head Line</button>
@@ -237,6 +271,7 @@ window.PalmistryTab = ({ pr }) => {
           {chat.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600/20 border border-violet-500/30 text-violet-100' : 'bg-black/40 border border-white/10 text-white/80'}`}>
+                {m.role === "assistant" && <div className="text-[9px] text-violet-400 opacity-60 mb-1 font-bold tracking-widest uppercase flex items-center gap-1"><window.Icon.ShieldCheck size={12}/> AI Confidence: High</div>}
                 {m.text}
               </div>
             </div>

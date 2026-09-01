@@ -121,7 +121,15 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
     return data.choices?.[0]?.message?.content;
   };
 
-  const callHuggingFace = async (apiKey) => {
+  
+const callPollinations = async () => {
+  const encP = encodeURIComponent(systemPrompt + "\n\n" + prompt);
+  const res = await fetch(`https://text.pollinations.ai/${encP}`);
+  if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
+  return await res.text();
+};
+
+const callHuggingFace = async (apiKey) => {
     const res = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2", {
       method: "POST",
       headers: {
@@ -145,7 +153,8 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
     { id: "deepseek", fn: callDeepSeek, key: keys.deepseek },
     { id: "kimi", fn: callKimi, key: keys.kimi },
     { id: "openrouter", fn: callOpenRouter, key: keys.openrouter },
-    { id: "huggingface", fn: callHuggingFace, key: keys.huggingface }
+    { id: "huggingface", fn: callHuggingFace, key: keys.huggingface },
+    { id: "free-ai", fn: callPollinations, key: "free" }
   ];
 
   if (preferredModel !== "auto" && preferredModel !== "offline") {
@@ -161,7 +170,7 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
     }
   }
 
-  const availableProviders = providers.filter((prov) => prov.key);
+  const availableProviders = providers.filter((prov) => prov.key || prov.id === "free-ai");
   const cursorKey = "gl_ai_provider_cursor";
   let cursor = 0;
   try { cursor = Number.parseInt(localStorage.getItem(cursorKey) || "0", 10) || 0; } catch (e) {}
@@ -254,7 +263,28 @@ window.generateOfflineYearlyHoroscope = (pr, ch, targetDate) => {
   return report;
 };
 
-window.runVedicRuleEngine = (query, profile, kundli, targetDate, learnedContext = "") => {
+
+window.updateOfflineRules = (userMsg, aiMsg) => {
+    try {
+        let rules = JSON.parse(localStorage.getItem('gl_offline_learned_rules') || '[]');
+        // simple keyword extraction to "learn"
+        if (userMsg.toLowerCase().includes('career')) rules.push("User prioritizes career questions.");
+        if (userMsg.toLowerCase().includes('health')) rules.push("User focuses on health analysis.");
+        if (userMsg.toLowerCase().includes('marriage')) rules.push("User focuses on marriage and relationships.");
+        // keep unique and last 10
+        rules = [...new Set(rules)].slice(-10);
+        localStorage.setItem('gl_offline_learned_rules', JSON.stringify(rules));
+    } catch(e) {}
+};
+
+window.getOfflineRules = () => {
+    try {
+        return JSON.parse(localStorage.getItem('gl_offline_learned_rules') || '[]');
+    } catch(e) { return []; }
+};
+
+window.runVedicRuleEngine = (query, profile, kundli, targetDate, learnedContext = "", chineseWall = false) => {
+  const rules = window.getOfflineRules().join(" | ");
   const lQ = query.toLowerCase();
   
   if (lQ.includes("yearly horoscope") || lQ.includes("month-by-month")) {
@@ -277,7 +307,7 @@ window.runVedicRuleEngine = (query, profile, kundli, targetDate, learnedContext 
   }
 
   let domain = "Comprehensive Vedic Life Guidance";
-  let analysis = `**Native:** ${profile?.name || "Native"} | **Target Date:** ${dateFormatted}\n**Core Matrix:** ${kundli.d1.lagna} Lagna, Moon in ${kundli.nak} (Pada ${kundli.pada}).\n**Current Cosmic Rulers:** ${activeMaha} Mahadasha is guiding your overarching karmic trajectory, with day energy governed by ${rulingPlanet}.${learnedContext ? `\n**Learned conversation context:** ${learnedContext}` : ""}`;
+  let analysis = chineseWall ? `**Target Date:** ${dateFormatted}\n(Profile context shielded due to Chinese Wall privacy settings).\n**Learned AI Rules:** ${rules}\n${learnedContext ? `**Recent context:** ${learnedContext}` : ""}` : `**Native:** ${profile?.name || "Native"} | **Target Date:** ${dateFormatted}\n**Core Matrix:** ${kundli.d1.lagna} Lagna, Moon in ${kundli.nak} (Pada ${kundli.pada}).\n**Current Cosmic Rulers:** ${activeMaha} Mahadasha is guiding your overarching karmic trajectory, with day energy governed by ${rulingPlanet}.${learnedContext ? `\n**Learned conversation context:** ${learnedContext}` : ""}\n**Learned AI Rules:** ${rules}`;
   let roadmap = `1. **Strategic Decisions:** Align high-value tasks with favorable Choghadiya windows visible in your Panchang tab.\n2. **Energy Output:** Maintain balanced output tailored to your 15-day biorhythms (P: ${Math.round(((b.p + 1) / 2) * 100)}%, E: ${Math.round(((b.e + 1) / 2) * 100)}%, I: ${Math.round(((b.i + 1) / 2) * 100)}%).`;
   let muhurtaRemedy = `Recite the Beej Mantra for today's active Hora ruler (${rulingPlanet}): "${window.PLANET_INFO?.[rulingPlanet]?.beej}".`;
 

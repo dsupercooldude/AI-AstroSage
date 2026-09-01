@@ -99,7 +99,7 @@ window.NAKSHATRA_NADIS = [
 
 window.LUNAR_MASAS = [
   "Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada",
-  "Ashvin", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"
+  "Ashwin", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"
 ];
 
 window.YOGAS = [
@@ -507,11 +507,35 @@ window.computeKundli = (profile, dateObj = null) => {
   const [hh, mm] = (profile.time || "12:00").split(":").map(Number);
   const ascL = window.norm360(sid.Sun + (hh + mm / 60 - 6) * 15);
 
+  
   const getDiv = (lon, div) => {
-    if (div === 1) return window.SIGNS[Math.floor(lon / 30)];
-    if (div === 9) return window.SIGNS[([0, 9, 6, 3, 0, 9, 6, 3, 0, 9, 6, 3][Math.floor(lon / 30)] + Math.floor((lon % 30) / (30 / 9))) % 12];
-    return window.SIGNS[Math.floor(lon / 30)];
+    const signIdx = Math.floor(lon / 30);
+    const degInSign = lon % 30;
+    if (div === 1) return window.SIGNS[signIdx];
+    if (div === 9) {
+      const startSignOffsets = [0, 9, 6, 3, 0, 9, 6, 3, 0, 9, 6, 3];
+      return window.SIGNS[(startSignOffsets[signIdx] + Math.floor(degInSign / (30 / 9))) % 12];
+    }
+    if (div === 3) {
+      const part = Math.floor(degInSign / 10);
+      const offset = part === 0 ? 0 : part === 1 ? 4 : 8;
+      return window.SIGNS[(signIdx + offset) % 12];
+    }
+    if (div === 7) {
+      const part = Math.floor(degInSign / (30 / 7));
+      const isOdd = signIdx % 2 === 0; // 0-indexed, so 0 is Aries (odd)
+      const startIdx = isOdd ? signIdx : (signIdx + 6) % 12;
+      return window.SIGNS[(startIdx + part) % 12];
+    }
+    if (div === 10) {
+      const part = Math.floor(degInSign / 3);
+      const isOdd = signIdx % 2 === 0;
+      const startIdx = isOdd ? signIdx : (signIdx + 8) % 12;
+      return window.SIGNS[(startIdx + part) % 12];
+    }
+    return window.SIGNS[signIdx];
   };
+
 
   const genC = (div) => {
     const lg = getDiv(ascL, div);
@@ -650,17 +674,27 @@ window.panchang = (dObj, ms = "amanta", utc = 5.5, geo = null) => {
     { n: "Kaal", d: "Loss", c: "#A78BFA" }
   ];
   const cm = {
-    0: [0, 5, 3, 1, 2, 4, 6, 0],
-    1: [1, 2, 4, 6, 0, 5, 3, 1],
-    2: [2, 4, 6, 0, 5, 3, 1, 2],
-    3: [3, 1, 2, 4, 6, 0, 5, 3],
-    4: [4, 6, 0, 5, 3, 1, 2, 4],
-    5: [5, 3, 1, 2, 4, 6, 0, 5],
-    6: [6, 0, 5, 3, 1, 2, 4, 6]
+    0: [0, 5, 3, 1, 6, 4, 2, 0],
+    1: [1, 6, 4, 2, 0, 5, 3, 1],
+    2: [2, 0, 5, 3, 1, 6, 4, 2],
+    3: [3, 1, 6, 4, 2, 0, 5, 3],
+    4: [4, 2, 0, 5, 3, 1, 6, 4],
+    5: [5, 3, 1, 6, 4, 2, 0, 5],
+    6: [6, 4, 2, 0, 5, 3, 1, 6]
+  };
+
+  const cmNight = {
+    0: [4, 1, 5, 2, 6, 3, 0, 4], // Sunday Night
+    1: [5, 2, 6, 3, 0, 4, 1, 5], // Monday Night
+    2: [6, 3, 0, 4, 1, 5, 2, 6], // Tuesday Night
+    3: [0, 4, 1, 5, 2, 6, 3, 0], // Wednesday Night
+    4: [1, 5, 2, 6, 3, 0, 4, 1], // Thursday Night
+    5: [2, 6, 3, 0, 4, 1, 5, 2], // Friday Night
+    6: [3, 0, 4, 1, 5, 2, 6, 3]  // Saturday Night
   };
 
   const chogDay = cm[dow].map((i, idx) => ({ ...ct[i], ...getS(sr.getTime() + idx * (dMs / 8), dMs / 8) }));
-  const chogNight = cm[(dow + 4) % 7].map((i, idx) => ({ ...ct[i], ...getS(ss.getTime() + idx * (nMs / 8), nMs / 8) }));
+  const chogNight = cmNight[dow].map((i, idx) => ({ ...ct[i], ...getS(ss.getTime() + idx * (nMs / 8), nMs / 8) }));
 
   const hoOrder = [0, 5, 3, 1, 6, 4, 2];
   const sHoIdx = [0, 3, 6, 2, 5, 1, 4][dow];

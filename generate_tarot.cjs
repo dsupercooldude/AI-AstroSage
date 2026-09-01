@@ -1,5 +1,7 @@
+const fs = require('fs');
 
-window.TarotTab = ({ settings }) => {
+const code = `
+window.TarotTab = () => {
   const { useState, useEffect } = window.React;
   const { Icon } = window;
   const [deckMajor, setDeckMajor] = useState([]);
@@ -26,10 +28,10 @@ window.TarotTab = ({ settings }) => {
     majorArcana.forEach(name => major.push({ name, type: "Major", suit: null }));
     suits.forEach(suit => {
       for (let i = 1; i <= 10; i++) {
-        minor.push({ name: `${i === 1 ? 'Ace' : i} of ${suit}`, type: "Minor", suit });
+        minor.push({ name: \`\${i === 1 ? 'Ace' : i} of \${suit}\`, type: "Minor", suit });
       }
       court.forEach(rank => {
-        minor.push({ name: `${rank} of ${suit}`, type: "Minor", suit });
+        minor.push({ name: \`\${rank} of \${suit}\`, type: "Minor", suit });
       });
     });
     // Shuffle visually
@@ -44,23 +46,15 @@ window.TarotTab = ({ settings }) => {
     setTokenUsage(null);
     try {
       const q = question.trim() || "What do I need to know right now?";
-      const prompt = `The user has asked the Tarot oracle: "${q}". They drew the Major Arcana "${selectedMajor.name}" (${selectedMajor.reversed ? 'Reversed' : 'Upright'}) and the Minor Arcana "${selectedMinor.name}" (${selectedMinor.reversed ? 'Reversed' : 'Upright'}). Provide a deep, poetic, yet highly practical 2-paragraph Tarot reading combining these archetypes.`;
+      const prompt = \`The user has asked the Tarot oracle: "\${q}". They drew the Major Arcana "\${selectedMajor.name}" (\${selectedMajor.reversed ? 'Reversed' : 'Upright'}) and the Minor Arcana "\${selectedMinor.name}" (\${selectedMinor.reversed ? 'Reversed' : 'Upright'}). Provide a deep, poetic, yet highly practical 2-paragraph Tarot reading combining these archetypes.\`;
       
-      
-      let ans = "";
-      if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
-         const res = await window.executeMultiProviderAI(prompt, settings, "You are a mystical, wise Tarot Reader. Synthesize the meaning of the drawn cards in relation to the user's focus.");
-         if (res && res.text) ans = res.text;
+      const res = await window.queryAI(prompt, "auto");
+      if (res && res.text) {
+        setReading(res.text);
+        setTokenUsage(Math.floor(res.text.length * 0.3));
+      } else {
+        setReading("The spirits are quiet. The AI engine could not connect.");
       }
-      if (!ans && window.runVedicRuleEngine) {
-         const dummyCh = { d1: { lagna: 'Aries' }, nak: 'Ashwini', pada: 1 };
-         ans = window.runVedicRuleEngine(prompt, {}, dummyCh, new Date(), "", false);
-      }
-      if (!ans) ans = "The Oracle is silent. The energies are shifting. Try again later.";
-      
-      setReading(ans);
-      setTokenUsage(Math.floor(ans.length * 0.25));
-
     } catch (e) {
       setReading("Connection to the Oracle failed.");
     }
@@ -117,7 +111,7 @@ window.TarotTab = ({ settings }) => {
                 onClick={() => setSelectedMajor(null)}
                 className="w-32 h-48 rounded-xl border border-indigo-400 bg-indigo-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(99,102,241,0.2)]"
               >
-                <Icon name="star" weight="duotone" size={28} className={`text-indigo-300 mb-2 ${selectedMajor.reversed ? 'rotate-180 opacity-70' : ''}`} />
+                <Icon name="star" weight="duotone" size={28} className={\`text-indigo-300 mb-2 \${selectedMajor.reversed ? 'rotate-180 opacity-70' : ''}\`} />
                 <span className="font-serif text-sm text-indigo-100">{selectedMajor.name}</span>
                 <span className="text-[9px] font-mono text-indigo-300/70 uppercase mt-1 tracking-wider">{selectedMajor.reversed ? 'Reversed' : 'Upright'}</span>
               </div>
@@ -141,7 +135,7 @@ window.TarotTab = ({ settings }) => {
                 onClick={() => setSelectedMinor(null)}
                 className="w-32 h-48 rounded-xl border border-pink-400 bg-pink-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(236,72,153,0.2)]"
               >
-                <Icon name="diamonds-four" weight="duotone" size={28} className={`text-pink-300 mb-2 ${selectedMinor.reversed ? 'rotate-180 opacity-70' : ''}`} />
+                <Icon name="diamonds-four" weight="duotone" size={28} className={\`text-pink-300 mb-2 \${selectedMinor.reversed ? 'rotate-180 opacity-70' : ''}\`} />
                 <span className="font-serif text-sm text-pink-100">{selectedMinor.name}</span>
                 <span className="text-[9px] font-mono text-pink-300/70 uppercase mt-1 tracking-wider">{selectedMinor.reversed ? 'Reversed' : 'Upright'}</span>
               </div>
@@ -163,7 +157,6 @@ window.TarotTab = ({ settings }) => {
 
         {reading && (
           <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-2xl p-6 gl-fadein relative">
-            <div className="text-[10px] font-mono text-indigo-400/50 absolute top-3 right-4">AI Oracle Generated {tokenUsage ? `(~${tokenUsage} tokens)` : ''}</div>
             <h3 className="font-serif text-lg text-indigo-200 mb-4 flex items-center gap-2">
               <Icon name="sparkle" /> Oracle Synthesis
             </h3>
@@ -181,3 +174,6 @@ window.TarotTab = ({ settings }) => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/jsx/tab-tarot.jsx', code);

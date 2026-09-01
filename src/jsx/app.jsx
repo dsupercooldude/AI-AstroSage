@@ -47,8 +47,8 @@ const bootInterval = setInterval(() => {
               const sess = localStorage.getItem("gl_active_user");
               if (sess) {
                 const pS = JSON.parse(sess); const vaultFile = await AppDB.getFile(`gl_vault_${pS.emailHash}.json`);
-                let pr = []; try { const decodedProfiles = typeof vaultFile.content.profiles === "string" ? CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles; pr = typeof decodedProfiles === "string" ? JSON.parse(decodedProfiles) : decodedProfiles || []; } catch(e){}
-                let se = {}; try { const decodedSettings = typeof vaultFile.content.settings === "string" ? CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings; se = typeof decodedSettings === "string" ? JSON.parse(decodedSettings) : decodedSettings || {}; } catch(e){}
+                let pr = []; try { const decodedProfiles = typeof vaultFile.content.profiles === "string" ? await CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles; pr = typeof decodedProfiles === "string" ? JSON.parse(decodedProfiles) : decodedProfiles || []; } catch(e){}
+                let se = {}; try { const decodedSettings = typeof vaultFile.content.settings === "string" ? await CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings; se = typeof decodedSettings === "string" ? JSON.parse(decodedSettings) : decodedSettings || {}; } catch(e){}
                 setU({ email: pS.email, emailHash: pS.emailHash, profiles: pr, settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {}, ...se, apiKeys: { ...(se.apiKeys || {}) } }, mfaEnabled: pS.mfaEnabled });
                 if (pr.length) setActiveProfileId(pr[0].id);
               }
@@ -131,9 +131,9 @@ const bootInterval = setInterval(() => {
 
       const logoutUser = () => { try { localStorage.removeItem("gl_active_user"); } catch (e) {} setU(null); };
       const handleOpenEdit = (profileObj = {}) => { setFormData({ id: profileObj.id || null, name: profileObj.name || "", dob: profileObj.dob || "2000-01-01", time: profileObj.time || "12:00", place: profileObj.place || "", lat: profileObj.lat || "", lon: profileObj.lon || "", utcOffset: profileObj.utcOffset || "5.5", gotra: profileObj.gotra || "", jaati: profileObj.jaati || "", kulDevta: profileObj.kulDevta || "", gramDevta: profileObj.gramDevta || "", sthanDevta: profileObj.sthanDevta || "" }); setEd(profileObj); };
-      const hSave = async (e) => { e.preventDefault(); const pD = { ...formData, lat: parseFloat(formData.lat) || 0, lon: parseFloat(formData.lon) || 0, utcOffset: parseFloat(formData.utcOffset) || 5.5, id: formData.id || Date.now().toString() }; const nP = formData.id ? prs.map((p) => (p.id === pD.id ? pD : p)) : [...prs, pD]; const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = CryptoUtils.encrypt(nP); vaultFile.content.settings = vaultFile.content.settings || CryptoUtils.encrypt(set); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(pD.id); setEd(null); };
-      const deleteProfile = async (profileId) => { const nP = prs.filter((p) => p.id !== profileId); const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = CryptoUtils.encrypt(nP); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(nP[0]?.id || null); setEd(null); };
-      const updateSettings = async (ns) => { setU((current) => ({ ...current, settings: ns })); settingsSaveChain.current = settingsSaveChain.current.catch(() => {}).then(async () => { const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.settings = CryptoUtils.encrypt(ns); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); }); return settingsSaveChain.current; };
+      const hSave = async (e) => { e.preventDefault(); const pD = { ...formData, lat: parseFloat(formData.lat) || 0, lon: parseFloat(formData.lon) || 0, utcOffset: parseFloat(formData.utcOffset) || 5.5, id: formData.id || Date.now().toString() }; const nP = formData.id ? prs.map((p) => (p.id === pD.id ? pD : p)) : [...prs, pD]; const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = await CryptoUtils.encrypt(nP); vaultFile.content.settings = vaultFile.content.settings || await CryptoUtils.encrypt(set); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(pD.id); setEd(null); };
+      const deleteProfile = async (profileId) => { const nP = prs.filter((p) => p.id !== profileId); const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = await CryptoUtils.encrypt(nP); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(nP[0]?.id || null); setEd(null); };
+      const updateSettings = async (ns) => { setU((current) => ({ ...current, settings: ns })); settingsSaveChain.current = settingsSaveChain.current.catch(() => {}).then(async () => { const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.settings = await CryptoUtils.encrypt(ns); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); }); return settingsSaveChain.current; };
 
       if (!dbC) return <SetupModal onConfig={() => setDbC(true)} />;
       if (!u) return <AuthModal onLogin={(d) => { setU(d); if (d?.profiles?.length) setActiveProfileId(d.profiles[0].id); }} />;
@@ -276,7 +276,7 @@ const bootInterval = setInterval(() => {
               </div>
             )}
           </div>
-          {aP && chs[aP.id] && <GhostPDFReport profile={aP} ch={chs[aP.id]} bioScores={window.bio ? window.bio(aP.dob, dt, aP.utcOffset) : {p:0,e:0,i:0}} date={dt} />}
+          {aP && chs[aP.id] && <GhostPDFReport profile={aP} ch={chs[aP.id]} bioScores={window.bio ? window.bio(aP.dob, dt, aP.utcOffset) : {p:0,e:0,i:0}} date={dt} prs={prs} chs={chs} />}
         </div>
       );
     }

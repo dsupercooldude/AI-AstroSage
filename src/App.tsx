@@ -53,20 +53,41 @@ const SEED_PROFILES = [
 
 export default function App() {
   // Hide the HTML bootloader as soon as the React App renders
+  
   useEffect(() => {
     const bootloader = document.getElementById("bootloader");
     if (bootloader) {
       bootloader.style.display = "none";
     }
+    if (!(window as any).googleTranslateElementInit) {
+      (window as any).googleTranslateElementInit = () => {
+        if ((window as any).google && (window as any).google.translate) {
+          new (window as any).google.translate.TranslateElement({
+            pageLanguage: 'en',
+            includedLanguages: 'en,ur,sa,hi,fr,de,ja,ru,es,zh-CN',
+            layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE
+          }, 'google_translate_element');
+        }
+      };
+      const script = document.createElement('script');
+      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.async = true;
+      document.body.appendChild(script);
+    }
   }, []);
 
-  const [dbConfigured, setDbConfigured] = useState(() => {
-    try {
-      return (window as any).AppDB ? (window as any).AppDB.loadConfig() : true;
-    } catch {
-      return true;
-    }
-  });
+
+  const [dbConfigured, setDbConfigured] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = (window as any).AppDB ? await (window as any).AppDB.loadConfig() : true;
+        setDbConfigured(res);
+      } catch (e) {
+        setDbConfigured(true);
+      }
+    })();
+  }, []);
 
   const [user, setUser] = useState<any>(() => {
     try {
@@ -81,7 +102,7 @@ export default function App() {
       emailHash: "guest_vault_default",
       profiles: SEED_PROFILES,
       settings: {
-        aiModel: "auto",
+        aiModel: "free-ai",
         monthSystem: "amanta",
         kundaliStyle: "north",
         apiKeys: {}
@@ -132,12 +153,12 @@ export default function App() {
               const vaultFile = await AppDB.getFile(`gl_vault_${pS.emailHash}.json`);
               let pr = [];
               try {
-                const decodedProfiles = typeof vaultFile.content.profiles === "string" ? CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
+                const decodedProfiles = typeof vaultFile.content.profiles === "string" ? await CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
                 pr = typeof decodedProfiles === "string" ? JSON.parse(decodedProfiles) : decodedProfiles || [];
               } catch (e) {}
               let se = {};
               try {
-                const decodedSettings = typeof vaultFile.content.settings === "string" ? CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
+                const decodedSettings = typeof vaultFile.content.settings === "string" ? await CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
                 se = typeof decodedSettings === "string" ? JSON.parse(decodedSettings) : decodedSettings || {};
               } catch (e) {}
               
@@ -316,8 +337,8 @@ export default function App() {
     if (AppDB && CryptoUtils && user.emailHash && user.emailHash !== "guest_vault_default") {
       try {
         const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
-        vaultFile.content.profiles = CryptoUtils.encrypt(newProfiles);
-        vaultFile.content.settings = vaultFile.content.settings || CryptoUtils.encrypt(settings);
+        vaultFile.content.profiles = await CryptoUtils.encrypt(newProfiles);
+        vaultFile.content.settings = vaultFile.content.settings || await CryptoUtils.encrypt(settings);
         await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
       } catch (err) {}
     }
@@ -335,7 +356,7 @@ export default function App() {
     if (AppDB && CryptoUtils && user.emailHash && user.emailHash !== "guest_vault_default") {
       try {
         const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
-        vaultFile.content.profiles = CryptoUtils.encrypt(newProfiles);
+        vaultFile.content.profiles = await CryptoUtils.encrypt(newProfiles);
         await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
       } catch (err) {}
     }
@@ -354,7 +375,7 @@ export default function App() {
       settingsSaveChain.current = settingsSaveChain.current.catch(() => {}).then(async () => {
         try {
           const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
-          vaultFile.content.settings = CryptoUtils.encrypt(ns);
+          vaultFile.content.settings = await CryptoUtils.encrypt(ns);
           await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
         } catch (err) {}
       });
@@ -516,7 +537,10 @@ export default function App() {
             </div>
           </div>
 
+          
           <div className="flex items-center gap-2 flex-wrap">
+            <div id="google_translate_element" className="shrink-0 mr-1 overflow-hidden" style={{ minWidth: '100px' }}></div>
+
             {profiles.length > 0 && (
               <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] rounded-xl px-2 py-1">
                 <span className="text-[10px] text-slate-500 uppercase font-mono tracking-wider">Profile:</span>
@@ -813,6 +837,8 @@ export default function App() {
           ch={activeChart}
           bioScores={(window as any).bio ? (window as any).bio(activeProfile.dob, date, activeProfile.utcOffset) : { p: 0, e: 0, i: 0 }}
           date={date}
+          prs={profiles}
+          chs={charts}
         />
       )}
     </div>

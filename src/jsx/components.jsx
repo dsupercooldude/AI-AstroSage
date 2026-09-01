@@ -280,7 +280,7 @@ window.DataConfidenceBadge = ({ localData, context }) => {
 
     return (
         <div className="flex items-center gap-2 mt-2">
-            {!confidence && !validating && (
+            {!validating && (
                 <button 
                     onClick={validateOnline}
                     className="flex items-center gap-1.5 text-[10px] font-mono uppercase bg-blue-500/10 text-blue-300 px-2 py-1 rounded border border-blue-500/20 hover:bg-blue-500/20 transition"

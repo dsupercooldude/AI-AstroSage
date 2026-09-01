@@ -6,8 +6,55 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
   const [chartStyle, setChartStyle] = useState(() => (settings?.kundaliStyle || "north").toUpperCase());
   const [showStyleMenu, setShowStyleMenu] = useState(false);
   const [expandedDasha, setExpandedDasha] = useState(null);
+  const [expandedAntar, setExpandedAntar] = useState(null);
+  const activeDashaRef = useRef(null);
   const [isExpert, setIsExpert] = useState(false);
-  const [kundaliView, setKundaliView] = useState("birth");
+  const [kundaliView, setKundaliView] = useState("d1");
+
+  const [aiSummary, setAiSummary] = useState("");
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  
+  const [lkSummary, setLkSummary] = useState("");
+  const [loadingLk, setLoadingLk] = useState(false);
+
+  const fetchLkSummary = async () => {
+    setLoadingLk(true);
+    try {
+      const prompt = `Give a concise 3-sentence Lal Kitaab reading for ${pr.name}, Lagna: ${ch.d1.lagna}, Moon Sign: ${ch.moonSign}. Provide one clear, actionable Lal Kitaab remedy.`;
+      let ans = "";
+      if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
+         const res = await window.executeMultiProviderAI(prompt, settings, "You are a concise expert in Lal Kitaab Astrology.");
+         if (res && res.text) ans = res.text;
+      }
+      if (!ans && window.runVedicRuleEngine) {
+         ans = window.runVedicRuleEngine(prompt, pr, ch, new Date(), "", false);
+      }
+      if (!ans) ans = "Lal Kitaab AI unavailable.";
+      setLkSummary(ans);
+    } catch (e) {}
+    setLoadingLk(false);
+  };
+
+  const fetchAiSummary = async () => {
+    setLoadingAi(true);
+    try {
+      const prompt = `Give a concise 3-sentence Jyotish astrological summary for ${pr.name}, Lagna: ${ch.d1.lagna}, Moon Sign: ${ch.moonSign}. Highlight their core strength and current focus based on transits.`;
+      let ans = "";
+      if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
+         const res = await window.executeMultiProviderAI(prompt, settings, "You are a concise expert Vedic Astrologer.");
+         if (res && res.text) ans = res.text;
+      }
+      if (!ans) {
+         ans = window.runVedicRuleEngine(prompt, pr, ch, date, "", false);
+      }
+      setAiSummary(ans);
+    } catch (e) {
+      setAiSummary("AI Summary unavailable.");
+    }
+    setLoadingAi(false);
+  };
+
 
   const currentYear = date.getFullYear() + (date.getMonth() / 12);
 
@@ -16,9 +63,18 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
   }, [settings?.kundaliStyle]);
 
   useEffect(() => {
-    if (ch && ch.dasha) {
+    if (ch && ch.dasha && window.getAntardashas) {
       const activeIndex = ch.dasha.findIndex(d => currentYear >= d.start && currentYear < d.end);
-      setExpandedDasha(activeIndex !== -1 ? activeIndex : 0);
+      if (activeIndex !== -1) {
+        setExpandedDasha(activeIndex);
+        const d = ch.dasha[activeIndex];
+        const antars = window.getAntardashas(d.lord, d.start, d.end);
+        const aIdx = antars.findIndex(a => currentYear >= a.start && currentYear < a.end);
+        setExpandedAntar(aIdx !== -1 ? activeIndex + "-" + aIdx : null);
+      } else {
+        setExpandedDasha(0);
+        setExpandedAntar("0-0");
+      }
     }
   }, [ch, date]);
 
@@ -33,8 +89,9 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
 
   const deepSynthesis = window.generateDeepSynthesis ? window.generateDeepSynthesis(pr, ch, bioScores || {p:0,e:0,i:0}, date) : {};
   const dynamicRx = deepSynthesis.dynamicPrescription || {};
-  const activeKundali = kundaliView === "chalit" ? (ch.d9 || ch.d1) : ch.d1;
-  const kundaliTitle = kundaliView === "chalit" ? "Chalit Kundali" : "Birth Kundali";
+  const activeKundali = (kundaliView === "chalit" && ch.chalit) ? ch.chalit : (ch[kundaliView] || ch.d1);
+  const chartNames = { d1: "Lagna (D1)", chalit: "Bhava Chalit", d9: "Navamsha (D9)", d3: "Drekkana (D3)", d7: "Saptamsha (D7)", d10: "Dashamsha (D10)" };
+  const kundaliTitle = chartNames[kundaliView] || "Kundali";
 
   return (
     <div className="space-y-6 pb-12 gl-fadein mt-4">
@@ -115,6 +172,13 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
         )}
       </div>
 
+      
+      {sankalp && (
+        <div className="bg-amber-900/20 border border-amber-500/30 rounded-2xl p-4 text-center font-serif text-amber-200/90 text-sm italic shadow-lg">
+          <i className="ph ph-hands-praying text-amber-400/50 mr-2"></i> {sankalp}
+        </div>
+      )}
+
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl space-y-3 transition hover:border-[#3f3f46]">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Lagna & Chalit Architectural Reading</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -136,9 +200,13 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{kundaliTitle}</div>
             <div className="flex gap-1.5 bg-[#09090b] rounded-xl border border-[#27272a] p-1">
               {[
-                { id: "birth", label: "Birth Kundali" },
-                { id: "chalit", label: "Chalit Kundali" }
-              ].map((view) => (
+    { id: "d1", label: "D1 Lagna" },
+    { id: "chalit", label: "Chalit" },
+    { id: "d9", label: "D9 Navamsha" },
+    { id: "d3", label: "D3 Drekkana" },
+    { id: "d7", label: "D7 Saptamsha" },
+    { id: "d10", label: "D10 Dashamsha" }
+  ].map((view) => (
                 <button
                   key={view.id}
                   onClick={() => setKundaliView(view.id)}
@@ -181,11 +249,11 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vimshottari Dasha Drilldown</h3>
           </div>
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
+          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
             {ch.dasha?.map((d, i) => {
               const isActive = currentYear >= d.start && currentYear < d.end;
               return (
-                <div key={i} className={`border rounded-2xl p-3.5 transition-all ${isActive ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-[#09090b] border-[#27272a]'}`}>
+                <div ref={isActive ? activeDashaRef : null} key={i} className={`border rounded-2xl p-3.5 transition-all ${isActive ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-[#09090b] border-[#27272a]'}`}>
                   <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedDasha(expandedDasha === i ? null : i)}>
                     <span className={`text-xs font-mono font-bold ${isActive ? 'text-indigo-400' : 'text-slate-200'}`}>
                       {isActive && <span className="mr-1.5 text-indigo-400">●</span>} {d.lord} Mahadasha
@@ -200,11 +268,12 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
                         const isAntarActive = currentYear >= antar.start && currentYear < antar.end;
                         return (
                         <div key={aIdx}>
-                          <div className={`text-[10px] font-mono font-bold cursor-pointer hover:opacity-80 transition flex justify-between items-center p-1.5 rounded-lg mb-1 ${isAntarActive ? 'text-indigo-400 bg-indigo-500/10 border border-indigo-500/20' : 'text-slate-400'}`}>
+                          <div className={`text-[10px] font-mono font-bold cursor-pointer hover:opacity-80 transition flex justify-between items-center p-1.5 rounded-lg mb-1 ${isAntarActive ? 'text-indigo-400 bg-indigo-500/10 border border-indigo-500/20' : 'text-slate-400'}`} onClick={() => setExpandedAntar(expandedAntar === (i + "-" + aIdx) ? null : (i + "-" + aIdx))}>
                             <span>▶ {d.lord} - {antar.lord} Antar</span>
                             <span className="text-[9px]">{Math.floor(antar.start)} - {Math.floor(antar.end)}</span>
                           </div>
-                          <div className="pl-4 space-y-1 border-l border-[#27272a] ml-1">
+                          {expandedAntar === (i + "-" + aIdx) && (
+                          <div className="pl-4 space-y-1 border-l border-[#27272a] ml-1 gl-fadein">
                             {window.getPratyantarDashas && window.getPratyantarDashas(antar.lord, antar.start, antar.end).map((prat, pIdx) => {
                               const isPratActive = currentYear >= prat.start && currentYear < prat.end;
                               return (
@@ -216,6 +285,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
                             );
                             })}
                           </div>
+                        )}
                         </div>
                       );
                       })}
@@ -231,7 +301,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shadbala & Planetary Power</h3>
           </div>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
+          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
             {Object.entries(ch.shadbala || {}).sort((a,b)=>b[1]-a[1]).map(([planet, score]) => {
               const pInfo = window.PLANET_INFO[planet]; 
               const percentage = Math.min(100, (score / 600) * 100);

@@ -5,6 +5,7 @@ var { useState, useEffect, useRef } = window.React;
 window.AskTab = ({ emHash, set, pr, ch, date }) => {
   const { Icon, AppDB, CryptoUtils, WEEKDAY, executeMultiProviderAI, runVedicRuleEngine } = window;
   const [q, setQ] = useState("");
+  const [shareData, setShareData] = useState(true);
   const [h, setH] = useState([]);
   const [l, setL] = useState(false);
   const [isMic, setIsMic] = useState(false);
@@ -16,7 +17,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
     const loadHistory = async () => {
       try {
         const chatsFile = await AppDB.getFile(`gl_chats_${emHash}.json`);
-        const decH = typeof chatsFile.content.h === "string" ? CryptoUtils.decrypt(chatsFile.content.h) : chatsFile.content.h || [];
+        const decH = typeof chatsFile.content.h === "string" ? await CryptoUtils.decrypt(chatsFile.content.h) : chatsFile.content.h || [];
         if (isMounted && decH) setH(decH);
       } catch (e) {}
     };
@@ -45,6 +46,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
   async function ask(e) {
     if (e) e.preventDefault();
     if (!q.trim() || l) return;
+    if (window.updateOfflineRules) window.updateOfflineRules(q.trim(), "");
     const userPrompt = q.trim();
     setL(true);
     let ans = "";
@@ -56,7 +58,16 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       const filteredPrompt = containsProfileData
         ? normalizedPrompt
         : `Please answer in the context of ${pr?.name || "this native"}'s natal chart, current date, and the user's profile-specific question. User question: ${normalizedPrompt}`;
-      const systemContext = `You are the Graha Ledger Jyotish Sage. Use only the profile-specific context provided by the user and the current chart context. Never mix another profile's data into the answer. If critical birth, time, place, or gender context is missing, request it before providing a final answer. For ${pr?.name || "Native"} (Asc: ${ch?.d1?.lagna || "Aries"}, Moon: ${ch?.moonSign || "Aries"}, Gender: ${pr?.gender || "not provided"}). Target Date: ${date.toDateString()}. Today Hora: ${WEEKDAY[date.getDay()]}. Prior requested context: ${relevantContext || "none"}.`;
+      
+      let systemContext = `You are the Graha Ledger Jyotish Sage.`;
+      if (shareData) {
+        systemContext += ` Use only the profile-specific context provided by the user and the current chart context. Never mix another profile's data into the answer. For ${pr?.name || "Native"} (Asc: ${ch?.d1?.lagna || "Aries"}, Moon: ${ch?.moonSign || "Aries"}, Gender: ${pr?.gender || "not provided"}). Target Date: ${date.toDateString()}. Today Hora: ${WEEKDAY[date.getDay()]}. Prior requested context: ${relevantContext || "none"}.`;
+        if (window.getOfflineRules) systemContext += ` Learned user patterns: ${window.getOfflineRules().join(" | ")}.`;
+      } else {
+        systemContext += ` Data Privacy (Chinese Wall) is active. Do NOT reference the user's specific natal chart, placements, or profile data unless they explicitly provide it in their prompt. Answer generically but expertly. Target Date: ${date.toDateString()}. Prior context: ${relevantContext || "none"}.`;
+        if (window.getOfflineRules) systemContext += ` You may leverage learned user patterns: ${window.getOfflineRules().join(" | ")}.`;
+      }
+
 
       if (set?.aiModel !== "offline" && executeMultiProviderAI) {
         const apiRes = await executeMultiProviderAI(filteredPrompt, set, systemContext);
@@ -76,7 +87,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       
       try {
         const chatsFile = await AppDB.getFile(`gl_chats_${emHash}.json`);
-        chatsFile.content.h = CryptoUtils.encrypt(nx);
+        chatsFile.content.h = await CryptoUtils.encrypt(nx);
         await AppDB.saveFile(`gl_chats_${emHash}.json`, chatsFile.content, chatsFile.sha);
         await AppDB.appendGlobalAI(newQA);
       } catch (er) {}
