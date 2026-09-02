@@ -29,7 +29,7 @@ window.SetupModal = ({ onConfig }) => {
     <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bg-[#09090b] p-6 shadow-2xl border border-[#27272a]">
       <form onSubmit={async(e)=>{ e.preventDefault(); setErr(""); await AppDB.setConfig(o,r,t); try{ await AppDB.callApi('GET',''); onConfig(); }catch(er){ if(er.message==="404") { onConfig(); } else { setErr("Token Invalid or Repo Missing."); AppDB.clearConfig(); } } }}>
         <SageLogo size={44}/><h2 className="text-center font-serif text-xl mt-2 mb-4 text-amber-200">Connect Cloud Vault</h2>
-        {err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err}</div>}
+        {err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err.startsWith("DEVICE_LOCKED:") ? (<div><p>{err.split(':')[1]}</p><button type="button" onClick={async () => { if(confirm('This will PERMANENTLY ERASE your cloud vault and reset it for this device. Are you sure?')) { const vault = await AppDB.getFile(`gl_vault_${await AppDB.hashKey(e.trim().toLowerCase())}.json`); vault.content = { profiles: [], settings: {} }; await AppDB.saveFile(`gl_vault_${await AppDB.hashKey(e.trim().toLowerCase())}.json`, vault.content, vault.sha); alert('Vault wiped. Please sign in again.'); setErr(''); } }} className="mt-2 w-full py-1.5 bg-red-500 text-black font-bold rounded">Wipe & Reset Vault</button></div>) : err}</div>}
         <div className="space-y-3">
           <div><label className="text-[10px] t40 uppercase font-mono">GitHub Username</label><input required value={o} onChange={e=>setO(e.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>
           <div><label className="text-[10px] t40 uppercase font-mono">Repo Name</label><input required value={r} onChange={e=>setR(e.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>
@@ -49,8 +49,24 @@ window.AuthModal = ({ onLogin }) => {
     const vaultFile = await AppDB.getFile(`gl_vault_${emailHash}.json`);
     const decodedProfiles = typeof vaultFile.content.profiles === 'string' ? await CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
     const decodedSettings = typeof vaultFile.content.settings === 'string' ? await CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
-    const prof = typeof decodedProfiles === 'string' ? JSON.parse(decodedProfiles) : (decodedProfiles || []);
-    const sett = typeof decodedSettings === 'string' ? JSON.parse(decodedSettings) : (decodedSettings || {});
+    let prof;
+    try {
+       prof = typeof decodedProfiles === 'string' ? JSON.parse(decodedProfiles) : (decodedProfiles || []);
+    } catch(err) {
+       if (typeof decodedProfiles === 'string' && decodedProfiles.startsWith("ECIES:")) {
+           throw new Error("DEVICE_LOCKED: Vault is locked to your original device's encryption keys. You cannot access this data from a new browser.");
+       }
+       throw err;
+    }
+    let sett;
+    try {
+       sett = typeof decodedSettings === 'string' ? JSON.parse(decodedSettings) : (decodedSettings || {});
+    } catch(err) {
+       if (typeof decodedSettings === 'string' && decodedSettings.startsWith("ECIES:")) {
+           throw new Error("DEVICE_LOCKED: Vault is locked to your original device's encryption keys.");
+       }
+       throw err;
+    }
     try { localStorage.setItem('gl_active_user', JSON.stringify({ email: normE, emailHash, mfaEnabled: isMfaEnabled })); } catch(ex){}
     onLogin({ email: normE, emailHash, profiles: prof, settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", ...sett, apiKeys: { ...(sett.apiKeys || {}) } }, requiresPasswordChange: reqChange, mfaEnabled: isMfaEnabled });
   };
