@@ -164,7 +164,9 @@ const callHuggingFace = async (apiKey) => {
         const txt = await target.fn(target.key);
         if (txt) {
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
+          window.lastAIProvider = target ? target.id : (prov ? prov.id : "ai");
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: target.id, tokens } }));
+          window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: target.id, tokens } }));
           return { text: txt, provider: target.id, tokens };
         }
       } catch (err) {
@@ -189,7 +191,9 @@ const callHuggingFace = async (apiKey) => {
           window.lastAIProviderErrors = failures;
           
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
+          window.lastAIProvider = target ? target.id : (prov ? prov.id : "ai");
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: prov.id, tokens } }));
+          window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: prov.id, tokens } }));
           return { text: txt, provider: prov.id, tokens };
         }
       } catch (err) {

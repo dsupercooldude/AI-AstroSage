@@ -11,7 +11,7 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
     const fetchData = async () => {
       if (!emHash || !profile) return;
       try {
-        const palmFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+        const palmFile = await window.AppDB.getFile(`gl_palmistry_analysis_${emHash}.json`);
         let ph = [];
         try {
            const pstr = typeof palmFile.content.history === "string" ? await window.CryptoUtils.decrypt(palmFile.content.history) : palmFile.content.history;

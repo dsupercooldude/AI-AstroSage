@@ -582,12 +582,24 @@ window.computeKundli = (profile, dateObj = null) => {
     transits[p] = window.SIGNS[Math.floor(window.norm360((Math.atan2(h.y - te.y, h.x - te.x) * 180) / Math.PI - aya) / 30)];
   });
 
+  const calculatedMoon = window.SIGNS[Math.floor(sid.Moon / 30)];
+  const calculatedSun = window.SIGNS[Math.floor(sid.Sun / 30)];
+  const calculatedLagna = genC(1).lagna;
+
+  const d1Chart = genC(1);
+  if (profile.ascOverride) {
+    const overrideAsc = profile.ascOverride.trim();
+    if (window.SIGNS.includes(overrideAsc)) {
+      d1Chart.lagna = overrideAsc;
+    }
+  }
+
   return {
-    d1: genC(1),
+    d1: d1Chart,
     d9: genC(9),
     kpTable: kpPlanets,
-    moonSign: window.SIGNS[Math.floor(sid.Moon / 30)],
-    sunSign: window.SIGNS[Math.floor(sid.Sun / 30)],
+    moonSign: (profile.moonOverride && window.SIGNS.includes(profile.moonOverride.trim())) ? profile.moonOverride.trim() : calculatedMoon,
+    sunSign: (profile.sunOverride && window.SIGNS.includes(profile.sunOverride.trim())) ? profile.sunOverride.trim() : calculatedSun,
     nak: window.NAKSHATRAS[moonIdx],
     pada: Math.floor((sid.Moon % (360 / 27)) / ((360 / 27) / 4)) + 1,
     planetaryDegrees: sid,
@@ -1018,4 +1030,37 @@ window.generateDeepSynthesis = (pr, ch, bio, targetDate) => {
     karakaMeanings,
     avasthaMeanings
   };
+};
+
+
+window.formatMarkdown = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed) return window.React.createElement('div', { key: idx, className: "h-2" });
+    if (trimmed.startsWith('### ')) return window.React.createElement('h3', { key: idx, className: "text-sm font-bold text-amber-300 mt-4 mb-2" }, trimmed.replace(/^###\s/, ''));
+    if (trimmed.startsWith('## ')) return window.React.createElement('h2', { key: idx, className: "text-base font-bold text-amber-400 mt-4 mb-2" }, trimmed.replace(/^##\s/, ''));
+    if (trimmed.startsWith('# ')) return window.React.createElement('h1', { key: idx, className: "text-lg font-bold text-amber-500 mt-4 mb-2 border-b border-[#27272a] pb-1" }, trimmed.replace(/^#\s/, ''));
+    if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+      const content = trimmed.replace(/^[*|-]\s/, '');
+      const parts = content.split(/(\*\*.*?\*\*)/g).map((part, j) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return window.React.createElement('strong', { key: j, className: "text-amber-200 font-bold" }, part.slice(2, -2));
+        }
+        return part;
+      });
+      return window.React.createElement('div', { key: idx, className: "flex gap-2 items-start mt-1 mb-1" }, 
+        window.React.createElement('span', { className: "text-amber-500/50 mt-1 shrink-0 text-xs" }, "✦"), 
+        window.React.createElement('span', { className: "text-white/80" }, parts)
+      );
+    }
+    const parts = trimmed.split(/(\*\*.*?\*\*)/g).map((part, j) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return window.React.createElement('strong', { key: j, className: "text-amber-200 font-bold" }, part.slice(2, -2));
+      }
+      return part;
+    });
+    return window.React.createElement('div', { key: idx, className: "text-white/80 leading-relaxed mb-2" }, parts);
+  });
 };

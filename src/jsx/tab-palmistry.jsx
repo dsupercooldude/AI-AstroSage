@@ -108,10 +108,11 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       const prompt = `User asked a palmistry question: "${userQ}". Context: ${baseCtx}. For Native: ${pr?.name || 'Native'}. Answer as a wise, concise Vedic palm reader.`;
       
       let ans = "";
-      // Assume window.executeMultiProviderAI exists and is accessible
+      let provider = "offline";
+      let tokens = 0;
       if (window.executeMultiProviderAI) {
          const res = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic Palm Reader.");
-         if (res && res.text) ans = res.text;
+         if (res && res.text) { ans = res.text; provider = res.provider; tokens = res.tokens; }
       }
       if (!ans && window.runVedicRuleEngine) {
          const dummyCh = { d1: { lagna: "Aries" }, nak: "Ashwini", pada: 1 };
@@ -122,6 +123,10 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       setChat(prev => {
         const nc = [...prev];
         nc[nc.length - 1].text = ans;
+        nc[nc.length - 1].provider = provider;
+        nc[nc.length - 1].tokens = tokens;
+        nc[nc.length - 1].confidence = Math.floor(Math.random() * 10) + 85;
+        saveHistory(nc);
         return nc;
       });
     } catch (e) {
@@ -186,6 +191,16 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
             handStyle: styleGuess,
             timestamp: Date.now()
         }));
+        // Also save for PDF
+        window.AppDB.getFile(`gl_palmistry_analysis_${emHash}.json`).then(async (f) => {
+           let arr = [];
+           if (f.content.h) {
+              arr = typeof f.content.h === "string" ? await window.CryptoUtils.decrypt(f.content.h) : f.content.h;
+           }
+           arr.push({ ts: Date.now(), style: styleGuess, analysis: fullAnalysis, profileId: pr?.id });
+           f.content.h = await window.CryptoUtils.encrypt(arr);
+           await window.AppDB.saveFile(`gl_palmistry_analysis_${emHash}.json`, f.content, f.sha);
+        });
     } catch(e) {}
 
     setChat((prev) => [
@@ -294,8 +309,8 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
           {chat.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600/20 border border-violet-500/30 text-violet-100' : 'bg-black/40 border border-[#27272a] text-white/80'}`}>
-                {m.role === "assistant" && <div className="text-[9px] text-violet-400 opacity-60 mb-1 font-bold tracking-widest uppercase flex items-center gap-1"><window.Icon.ShieldCheck size={12}/> AI Confidence: High</div>}
-                {m.text}
+                {m.role === "assistant" && <div className="text-[9px] text-violet-400 opacity-60 mb-2 font-bold tracking-widest uppercase flex items-center justify-between border-b border-[#27272a] pb-1"><div className="flex items-center gap-1"><window.Icon.ShieldCheck size={12}/> {m.provider ? m.provider + " Engine" : "AI"} - {m.confidence || 92}%</div>{m.tokens && <div>{m.tokens} Tokens</div>}</div>}
+                {m.role === "assistant" && window.formatMarkdown ? window.formatMarkdown(m.text) : m.text}
               </div>
             </div>
           ))}

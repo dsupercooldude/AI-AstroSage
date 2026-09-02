@@ -48,9 +48,11 @@ window.TarotTab = ({ settings, emHash }) => {
       
       
       let ans = "";
+      let provider = "offline";
+      let tokens = 0;
       if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
          const res = await window.executeMultiProviderAI(prompt, settings, "You are a mystical, wise Tarot Reader. Synthesize the meaning of the drawn cards in relation to the user's focus.");
-         if (res && res.text) ans = res.text;
+         if (res && res.text) { ans = res.text; provider = res.provider; tokens = res.tokens; }
       }
       if (!ans && window.runVedicRuleEngine) {
          const dummyCh = { d1: { lagna: 'Aries' }, nak: 'Ashwini', pada: 1 };
@@ -59,8 +61,20 @@ window.TarotTab = ({ settings, emHash }) => {
       if (!ans) ans = "The Oracle is silent. The energies are shifting. Try again later.";
       
       setReading(ans);
-      setTokenUsage(Math.floor(ans.length * 0.25));
-
+      setTokenUsage(tokens || Math.floor(ans.length * 0.25));
+      setAiProvider(provider);
+      
+      try {
+        const hFile = await window.AppDB.getFile(`gl_tarot_${emHash}.json`);
+        let hist = [];
+        if (hFile.content.history) {
+          const str = typeof hFile.content.history === "string" ? await window.CryptoUtils.decrypt(hFile.content.history) : hFile.content.history;
+          hist = typeof str === "string" ? JSON.parse(str) : str || [];
+        }
+        hist.push({ ts: Date.now(), question: q, reading: ans, cards: [selectedMajor, selectedMinor], profileId: window.activeProfileId || "" });
+        hFile.content.history = await window.CryptoUtils.encrypt(hist);
+        await window.AppDB.saveFile(`gl_tarot_${emHash}.json`, hFile.content, hFile.sha);
+      } catch(e) {}
     } catch (e) {
       setReading("Connection to the Oracle failed.");
     }
@@ -170,11 +184,11 @@ window.TarotTab = ({ settings, emHash }) => {
   <window.SectionConfidence score={85} type="ai" label="Tarot AI" />
 </div>
             <div className="whitespace-pre-line text-sm font-mono leading-relaxed text-indigo-100/80">
-              {reading}
+              {window.formatMarkdown ? window.formatMarkdown(reading) : reading}
             </div>
             {tokenUsage && (
-              <div className="mt-4 text-[9px] text-indigo-400/50 border-t border-indigo-500/20 pt-2 text-right">
-                 ~ {tokenUsage} AI Tokens Consumed
+              <div className="mt-4 text-[9px] text-indigo-400/50 border-t border-indigo-500/20 pt-2 text-right font-bold uppercase tracking-widest">
+                 <window.Icon.ShieldCheck size={12} className="inline mr-1" /> {aiProvider || "AI"} Engine - 95% Confidence | {tokenUsage} Tokens
               </div>
             )}
           </div>

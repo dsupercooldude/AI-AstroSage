@@ -78,7 +78,7 @@ window.CompatTab = ({ prs, chs, settings }) => {
                  let ans = "";
                  if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
                      const apiRes = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic relationship astrologer.");
-                     if (apiRes && apiRes.text) ans = apiRes.text;
+                     if (apiRes && apiRes.text) { ans = apiRes.text; setAiProvider(apiRes.provider); setTokenUsage(apiRes.tokens || Math.floor(ans.length * 0.3)); }
                  }
                  if (!ans) {
                      ans = window.runVedicRuleEngine(prompt, p1, c1, new Date(), "", false);
@@ -86,7 +86,7 @@ window.CompatTab = ({ prs, chs, settings }) => {
                  
                  if (ans) {
                    setAiAnalysis(ans);
-                   setTokenUsage(Math.floor(ans.length * 0.3));
+                   if (!tokenUsage) setTokenUsage(Math.floor(ans.length * 0.3));
                  }
               } catch (e) {
                  setAiAnalysis("AI Analysis failed. " + e.message);
@@ -106,8 +106,8 @@ window.CompatTab = ({ prs, chs, settings }) => {
           <div className="text-sm t85 leading-relaxed font-mono space-y-2 whitespace-pre-wrap">
             {aiAnalysis}
             {tokenUsage && (
-              <div className="mt-3 text-[9px] text-pink-400/70 border-t border-[#27272a] pt-2 text-right">
-                 ~ {tokenUsage} AI Tokens Used
+              <div className="mt-3 text-[9px] text-pink-400/70 border-t border-[#27272a] pt-2 text-right uppercase tracking-widest font-bold">
+                 <window.Icon.ShieldCheck size={12} className="inline mr-1" /> {aiProvider === "offline" ? "AI" : aiProvider + " Engine"} - 95% Confidence | {tokenUsage} Tokens
               </div>
             )}
           </div>

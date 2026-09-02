@@ -63,7 +63,7 @@ const bootInterval = setInterval(() => {
     return () => window.removeEventListener('aiTokenUsage', handleTokenUsage);
   }, [u]);
  const [ed, setEd] = useState(null); const [activeProfileId, setActiveProfileId] = useState(null); const [adminAuthOpen, setAdminAuthOpen] = useState(false); const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
-      const [formData, setFormData] = useState({ name: "", dob: "2000-01-01", time: "12:00", place: "", lat: "", lon: "", utcOffset: "5.5", gotra: "", jaati: "", kulDevta: "", gramDevta: "", sthanDevta: "" });
+      const [formData, setFormData] = useState({ name: "", dob: "2000-01-01", time: "12:00", place: "", lat: "", lon: "", utcOffset: "5.5", gotra: "", jaati: "", kulDevta: "", gramDevta: "", sthanDevta: "", sunOverride: "", moonOverride: "", ascOverride: "", associatedProfileId: "", associatedRelation: "" });
       const settingsSaveChain = useRef(Promise.resolve());
 
       window.useIdleTimeout(() => { if (u) { try { localStorage.removeItem("gl_active_user"); } catch (e) {} setU(null); alert("Session timed out."); } }, 300000);
@@ -160,7 +160,7 @@ const bootInterval = setInterval(() => {
       }, [aP]);
 
       const logoutUser = () => { try { localStorage.removeItem("gl_active_user"); } catch (e) {} setU(null); };
-      const handleOpenEdit = (profileObj = {}) => { setFormData({ id: profileObj.id || null, name: profileObj.name || "", dob: profileObj.dob || "2000-01-01", time: profileObj.time || "12:00", place: profileObj.place || "", lat: profileObj.lat || "", lon: profileObj.lon || "", utcOffset: profileObj.utcOffset || "5.5", gotra: profileObj.gotra || "", jaati: profileObj.jaati || "", kulDevta: profileObj.kulDevta || "", gramDevta: profileObj.gramDevta || "", sthanDevta: profileObj.sthanDevta || "" }); setEd(profileObj); };
+      const handleOpenEdit = (profileObj = {}) => { setFormData({ id: profileObj.id || null, name: profileObj.name || "", dob: profileObj.dob || "2000-01-01", time: profileObj.time || "12:00", place: profileObj.place || "", lat: profileObj.lat || "", lon: profileObj.lon || "", utcOffset: profileObj.utcOffset || "5.5", gotra: profileObj.gotra || "", jaati: profileObj.jaati || "", kulDevta: profileObj.kulDevta || "", gramDevta: profileObj.gramDevta || "", sthanDevta: profileObj.sthanDevta || "", sunOverride: profileObj.sunOverride || "", moonOverride: profileObj.moonOverride || "", ascOverride: profileObj.ascOverride || "", associatedProfileId: profileObj.associatedProfileId || "", associatedRelation: profileObj.associatedRelation || "" }); setEd(profileObj); };
       const hSave = async (e) => { e.preventDefault(); const pD = { ...formData, lat: parseFloat(formData.lat) || 0, lon: parseFloat(formData.lon) || 0, utcOffset: parseFloat(formData.utcOffset) || 5.5, id: formData.id || Date.now().toString() }; const nP = formData.id ? prs.map((p) => (p.id === pD.id ? pD : p)) : [...prs, pD]; const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = await CryptoUtils.encrypt(nP); vaultFile.content.settings = vaultFile.content.settings || await CryptoUtils.encrypt(set); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(pD.id); setEd(null); };
       const deleteProfile = async (profileId) => { const nP = prs.filter((p) => p.id !== profileId); const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.profiles = await CryptoUtils.encrypt(nP); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); setU({ ...u, profiles: nP }); setActiveProfileId(nP[0]?.id || null); setEd(null); };
       const updateSettings = async (ns) => { setU((current) => ({ ...current, settings: ns })); settingsSaveChain.current = settingsSaveChain.current.catch(() => {}).then(async () => { const vaultFile = await AppDB.getFile(`gl_vault_${u.emailHash}.json`); vaultFile.content.settings = await CryptoUtils.encrypt(ns); await AppDB.saveFile(`gl_vault_${u.emailHash}.json`, vaultFile.content, vaultFile.sha); }); return settingsSaveChain.current; };
@@ -222,6 +222,7 @@ const bootInterval = setInterval(() => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <div id="google_translate_element" className="mr-3 scale-75 md:scale-90 origin-right"></div>
                 {prs.length > 1 && (
                   <select
                     value={aP?.id || ""}
@@ -288,6 +289,40 @@ const bootInterval = setInterval(() => {
                     <div><label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Latitude</label><input required type="number" step="any" value={formData.lat} onChange={(e) => setFormData({ ...formData, lat: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white" /></div>
                     <div><label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Longitude</label><input required type="number" step="any" value={formData.lon} onChange={(e) => setFormData({ ...formData, lon: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white" /></div>
                     <div><label className="text-[9px] text-indigo-400 uppercase font-mono mb-1 block font-bold">UTC Offset</label><input required type="number" step="any" value={formData.utcOffset} onChange={(e) => setFormData({ ...formData, utcOffset: e.target.value })} className="w-full bg-[#09090b] border border-indigo-500/40 rounded-xl px-2.5 py-2 text-xs outline-none text-indigo-300 font-bold" /></div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-[#27272a]">
+                    <div className="text-[10px] text-amber-400 uppercase font-mono mb-3 tracking-widest text-center font-bold">Astrological Overrides</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div><label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Sun Sign</label><input placeholder="Auto" value={formData.sunOverride || ''} onChange={(e) => setFormData({ ...formData, sunOverride: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white" /></div>
+                      <div><label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Moon Sign</label><input placeholder="Auto" value={formData.moonOverride || ''} onChange={(e) => setFormData({ ...formData, moonOverride: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white" /></div>
+                      <div><label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Ascendant</label><input placeholder="Auto" value={formData.ascOverride || ''} onChange={(e) => setFormData({ ...formData, ascOverride: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white" /></div>
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-[#27272a]">
+                    <div className="text-[10px] text-emerald-400 uppercase font-mono mb-3 tracking-widest text-center font-bold">Profile Association</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Related Profile</label>
+                        <select value={formData.associatedProfileId || ''} onChange={(e) => setFormData({ ...formData, associatedProfileId: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white appearance-none">
+                          <option value="">None</option>
+                          {prs.filter(p => p.id !== formData.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Relationship</label>
+                        <select value={formData.associatedRelation || ''} onChange={(e) => setFormData({ ...formData, associatedRelation: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white appearance-none">
+                          <option value="">Select...</option>
+                          <option value="Spouse">Spouse</option>
+                          <option value="Partner">Partner</option>
+                          <option value="Parent">Parent</option>
+                          <option value="Child">Child</option>
+                          <option value="Sibling">Sibling</option>
+                          <option value="Friend">Friend</option>
+                          <option value="Colleague">Colleague</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   <div className="pt-3 border-t border-[#27272a]">
                     <div className="text-[10px] text-indigo-400 uppercase font-mono mb-3 tracking-widest text-center font-bold">Spiritual Lineage (Sankalp)</div>
