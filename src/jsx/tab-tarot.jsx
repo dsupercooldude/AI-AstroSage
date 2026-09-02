@@ -1,5 +1,5 @@
 
-window.TarotTab = ({ settings }) => {
+window.TarotTab = ({ settings, emHash }) => {
   const { useState, useEffect } = window.React;
   const { Icon } = window;
   const [deckMajor, setDeckMajor] = useState([]);
@@ -74,27 +74,27 @@ window.TarotTab = ({ settings }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 gl-fadein pb-20">
-      <div className="bgcard rounded-3xl border border-indigo-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500"></div>
-        <div className="absolute -right-10 -top-10 text-indigo-500/10"><Icon name="cards" size={180} weight="fill" /></div>
+      <div style={{ borderColor: 'var(--theme-accent-light)' }} className="bg-[#18181b] rounded-3xl border p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
+        <div style={{ background: 'linear-gradient(to right, var(--theme-accent), var(--theme-accent-light))' }} className="absolute top-0 left-0 w-full h-1"></div>
+        <div style={{ color: 'var(--theme-accent-faint)' }} className="absolute -right-10 -top-10"><Icon name="cards" size={180} weight="fill" /></div>
         <div className="relative z-10 flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] uppercase tracking-widest font-bold border border-indigo-500/30">AI Oracle Engine</span>
+            <span style={{ backgroundColor: 'var(--theme-accent-faint)', color: 'var(--theme-accent)', borderColor: 'var(--theme-accent-light)' }} className="px-2 py-0.5 rounded text-[9px] uppercase tracking-widest font-bold border">AI Oracle Engine</span>
           </div>
-          <h2 className="font-serif text-2xl text-indigo-100 mt-1">Tarot Divination</h2>
+          <h2 style={{ color: 'var(--theme-accent-light)' }} className="font-serif text-2xl mt-1">Tarot Divination</h2>
           <p className="text-[11px] font-mono text-indigo-200/70 mt-2 max-w-2xl leading-relaxed">
             Concentrate on your query. Draw 1 Major Arcana (Core Theme) and 1 Minor Arcana (Practical Application) for a highly specific AI-powered reading.
           </p>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl">
+      <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
         <div className="flex gap-2 mb-6">
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Focus your intention and type a question..."
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 text-white font-mono placeholder:text-white/30"
+            className="flex-1 bg-black/40 border border-[#27272a] rounded-xl px-4 py-3 text-sm outline-none focus:border-indigo-500/50 text-white font-mono placeholder:text-white/30"
           />
         </div>
 
@@ -102,7 +102,6 @@ window.TarotTab = ({ settings }) => {
           
           {/* Major Arcana Selection */}
           <div className="flex flex-col items-center">
-            <h3 className="font-serif text-indigo-300 mb-3">Major Arcana</h3>
             {!selectedMajor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-indigo-500/40 bg-gradient-to-br from-indigo-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-indigo-500/20 flex items-center justify-center relative overflow-hidden group"
@@ -126,7 +125,6 @@ window.TarotTab = ({ settings }) => {
 
           {/* Minor Arcana Selection */}
           <div className="flex flex-col items-center">
-            <h3 className="font-serif text-pink-300 mb-3">Minor Arcana</h3>
             {!selectedMinor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-pink-500/40 bg-gradient-to-br from-pink-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-pink-500/20 flex items-center justify-center relative overflow-hidden group"
@@ -154,7 +152,8 @@ window.TarotTab = ({ settings }) => {
           <button 
             onClick={getReading}
             disabled={!selectedMajor || !selectedMinor || isDrawing}
-            className="px-8 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/40 disabled:text-white/30 text-white font-bold transition flex items-center justify-center shadow-lg shadow-indigo-900/50"
+            style={(!selectedMajor || !selectedMinor || isDrawing) ? { backgroundColor: 'var(--theme-accent-faint)', color: 'rgba(255,255,255,0.3)' } : { backgroundColor: 'var(--theme-accent)', color: '#fff', boxShadow: '0 10px 25px var(--theme-accent-light)' }}
+            className="px-8 py-3 rounded-full font-bold transition flex items-center justify-center"
           >
             {isDrawing ? <Icon name="spinner" className="animate-spin mr-2" size={18} /> : null}
             {isDrawing ? 'Channeling Oracle...' : 'Read My Cards'}
@@ -162,11 +161,14 @@ window.TarotTab = ({ settings }) => {
         </div>
 
         {reading && (
-          <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-2xl p-6 gl-fadein relative">
-            <div className="text-[10px] font-mono text-indigo-400/50 absolute top-3 right-4">AI Oracle Generated {tokenUsage ? `(~${tokenUsage} tokens)` : ''}</div>
-            <h3 className="font-serif text-lg text-indigo-200 mb-4 flex items-center gap-2">
-              <Icon name="sparkle" /> Oracle Synthesis
-            </h3>
+          <div style={{ backgroundColor: 'var(--theme-accent-faint)', borderColor: 'var(--theme-accent-light)' }} className="border rounded-2xl p-6 gl-fadein relative">
+            <div style={{ color: 'var(--theme-accent-light)' }} className="text-[10px] font-mono absolute top-3 right-4">AI Oracle Generated {tokenUsage ? `(~${tokenUsage} tokens)` : ''}</div>
+                      <div className="flex justify-between items-center w-full mb-4">
+  <h3 className="font-serif text-lg text-indigo-200 flex items-center gap-2">
+    <window.Icon name="sparkle" /> Oracle Synthesis
+  </h3>
+  <window.SectionConfidence score={85} type="ai" label="Tarot AI" />
+</div>
             <div className="whitespace-pre-line text-sm font-mono leading-relaxed text-indigo-100/80">
               {reading}
             </div>

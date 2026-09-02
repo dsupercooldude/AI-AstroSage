@@ -34,7 +34,35 @@ const bootInterval = setInterval(() => {
     var { useState, useEffect, useMemo, useRef, Fragment } = window.React;
 
     function AppContent() {
-      const [dbC, setDbC] = useState(() => AppDB.loadConfig()); const [u, setU] = useState(null); const [dt, setDt] = useState(new Date()); const [ss, setSs] = useState(false); const [ed, setEd] = useState(null); const [activeProfileId, setActiveProfileId] = useState(null); const [adminAuthOpen, setAdminAuthOpen] = useState(false); const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
+      const [dbC, setDbC] = useState(() => AppDB.loadConfig()); const [u, setU] = useState(null); const [dt, setDt] = useState(new Date()); const [ss, setSs] = useState(false);
+
+  useEffect(() => {
+    const handleTokenUsage = async (e) => {
+      if (!u || !u.emailHash) return;
+      try {
+        const { engine, tokens } = e.detail;
+        let authFile = await window.AppDB.getFile('gl_auth.json');
+        if (!authFile.content.users[u.emailHash].settings) authFile.content.users[u.emailHash].settings = {};
+        if (!authFile.content.users[u.emailHash].settings.tokenUsage) authFile.content.users[u.emailHash].settings.tokenUsage = {};
+        const cur = authFile.content.users[u.emailHash].settings.tokenUsage[engine] || 0;
+        authFile.content.users[u.emailHash].settings.tokenUsage[engine] = cur + tokens;
+        await window.AppDB.saveFile('gl_auth.json', authFile.content, authFile.sha);
+        // Also update local state so SettingsModal reflects it
+        setU(prev => {
+           const next = {...prev};
+           if (!next.settings) next.settings = {};
+           if (!next.settings.tokenUsage) next.settings.tokenUsage = {};
+           next.settings.tokenUsage[engine] = (next.settings.tokenUsage[engine] || 0) + tokens;
+           return next;
+        });
+      } catch (err) {
+        console.error("Token usage save failed", err);
+      }
+    };
+    window.addEventListener('aiTokenUsage', handleTokenUsage);
+    return () => window.removeEventListener('aiTokenUsage', handleTokenUsage);
+  }, [u]);
+ const [ed, setEd] = useState(null); const [activeProfileId, setActiveProfileId] = useState(null); const [adminAuthOpen, setAdminAuthOpen] = useState(false); const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
       const [formData, setFormData] = useState({ name: "", dob: "2000-01-01", time: "12:00", place: "", lat: "", lon: "", utcOffset: "5.5", gotra: "", jaati: "", kulDevta: "", gramDevta: "", sthanDevta: "" });
       const settingsSaveChain = useRef(Promise.resolve());
 
@@ -66,6 +94,8 @@ const bootInterval = setInterval(() => {
       // FIX: Seamless Off-Screen Multi-Page PDF Capture with background painting
       useEffect(() => {
         const handlePdf = async () => {
+          window.dispatchEvent(new Event("refreshPdfData"));
+
           const el = document.getElementById('pdf-render-target'); 
           if (!el) return; 
           
@@ -168,8 +198,8 @@ const bootInterval = setInterval(() => {
 
       return (
         <div className="min-h-screen w-full font-sans pb-12 bg-[#09090b] text-slate-200 relative">
-          <datalist id="gotras">{window.GOTRAS?.map((g) => (<option key={g} value={g} />))}</datalist>
-          <datalist id="jaatis">{window.JAATIS?.map((j) => (<option key={g} value={j} />))}</datalist>
+          <datalist id="gotras">{window.GOTRAS?.map((g) => (<option className="bg-[#09090b] text-white" key={g} value={g} />))}</datalist>
+          <datalist id="jaatis">{window.JAATIS?.map((j) => (<option className="bg-[#09090b] text-white" key={g} value={j} />))}</datalist>
 
           {ss && <SettingsModal u={u} settings={set} onClose={() => setSs(false)} onUpdateSettings={updateSettings} onMfaSuccess={() => setU({ ...u, mfaEnabled: true })} />}
           {adminAuthOpen && <AdminAuthModal u={u} onClose={() => setAdminAuthOpen(false)} onAuthenticated={() => { setAdminAuthOpen(false); setAdminConsoleOpen(true); }} />}
@@ -198,7 +228,7 @@ const bootInterval = setInterval(() => {
                     onChange={(e) => setActiveProfileId(e.target.value)}
                     className="bg-[#09090b] border border-[#27272a] text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none max-w-[120px] sm:max-w-[160px] truncate hover:border-[#3f3f46] transition"
                   >
-                    {prs.map((p) => (<option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
+                    {prs.map((p) => (<option className="bg-[#09090b] text-white" key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
                   </select>
                 )}
                 <button onClick={() => handleOpenEdit({})} title="New Profile" className="p-2.5 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-indigo-400 hover:text-white"><Icon name="user-plus" size={18} /></button>
@@ -276,7 +306,7 @@ const bootInterval = setInterval(() => {
               </div>
             )}
           </div>
-          {aP && chs[aP.id] && <GhostPDFReport profile={aP} ch={chs[aP.id]} bioScores={window.bio ? window.bio(aP.dob, dt, aP.utcOffset) : {p:0,e:0,i:0}} date={dt} prs={prs} chs={chs} />}
+          {aP && chs[aP.id] && <GhostPDFReport emHash={u.emailHash} profile={aP} ch={chs[aP.id]} bioScores={window.bio ? window.bio(aP.dob, dt, aP.utcOffset) : {p:0,e:0,i:0}} date={dt} prs={prs} chs={chs} />}
         </div>
       );
     }

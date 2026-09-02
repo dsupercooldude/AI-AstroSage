@@ -2,7 +2,7 @@
 var React = window.React;
 var { useState } = window.React;
 
-window.CompatTab = ({ prs, chs }) => {
+window.CompatTab = ({ prs, chs, settings }) => {
   const { NAKSHATRAS } = window;
   const storageKey = 'astrograh_union_pair';
   const initialPair = () => {
@@ -45,28 +45,28 @@ window.CompatTab = ({ prs, chs }) => {
 
   return (
     <div className="space-y-4 pb-12 gl-fadein mt-4">
-      <div className="rounded-3xl border border-white/10 p-5 bg-gradient-to-br from-pink-950/40 via-black/20 to-transparent flex flex-col sm:flex-row justify-between items-center gap-4 shadow-xl">
+      <div className="rounded-3xl border border-[#27272a] p-5 bg-gradient-to-br from-pink-950/40 via-black/20 to-transparent flex flex-col sm:flex-row justify-between items-center gap-4 shadow-xl">
         <div>
           <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-pink-300 mb-1">Union & Kundali Milan</div>
           <div className="flex items-center gap-2">
-            <select value={pairIds[0]} onChange={(e) => persistPair([e.target.value, pairIds[1]])} className="bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 font-serif text-base text-white outline-none">
-              {prs.map((p) => (<option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
+            <select value={pairIds[0]} onChange={(e) => persistPair([e.target.value, pairIds[1]])} className="bg-black/40 border border-[#27272a] rounded-xl px-2.5 py-1.5 font-serif text-base text-white outline-none">
+              {prs.map((p) => (<option className="bg-[#09090b] text-white" key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
             </select>
             <span className="font-serif text-pink-300">&amp;</span>
-            <select value={pairIds[1]} onChange={(e) => persistPair([pairIds[0], e.target.value])} className="bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 font-serif text-base text-white outline-none">
-              {prs.map((p) => (<option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
+            <select value={pairIds[1]} onChange={(e) => persistPair([pairIds[0], e.target.value])} className="bg-black/40 border border-[#27272a] rounded-xl px-2.5 py-1.5 font-serif text-base text-white outline-none">
+              {prs.map((p) => (<option className="bg-[#09090b] text-white" key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
             </select>
           </div>
         </div>
-        <div className="text-center p-3 rounded-2xl bg-black/40 border border-white/10 min-w-[100px]">
+        <div className="text-center p-3 rounded-2xl bg-black/40 border border-[#27272a] min-w-[100px]">
           <div className="text-3xl font-serif text-pink-300 font-bold">{score.toFixed(1)}</div>
           <div className="text-[9px] t50 uppercase font-mono mt-0.5">Out of 36 Gunas</div>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl">
+      <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="font-serif text-lg text-pink-200">Deep Relationship Analysis</h3>
+          <div className="flex justify-between items-center w-full"><h3 className="font-serif text-lg text-pink-200">Deep Relationship Analysis</h3><window.SectionConfidence score={85} type="ai" label="Compatibility AI" /></div>
           <button 
             onClick={async () => {
               setLoadingAi(true);
@@ -106,7 +106,7 @@ window.CompatTab = ({ prs, chs }) => {
           <div className="text-sm t85 leading-relaxed font-mono space-y-2 whitespace-pre-wrap">
             {aiAnalysis}
             {tokenUsage && (
-              <div className="mt-3 text-[9px] text-pink-400/70 border-t border-white/10 pt-2 text-right">
+              <div className="mt-3 text-[9px] text-pink-400/70 border-t border-[#27272a] pt-2 text-right">
                  ~ {tokenUsage} AI Tokens Used
               </div>
             )}
@@ -116,12 +116,12 @@ window.CompatTab = ({ prs, chs }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {Object.entries(match.details || {}).map(([key, value]) => (
-          <div key={key} className="rounded-2xl border border-white/10 bg-black/25 p-4 shadow-inner">
+          <div key={key} className="rounded-2xl border border-[#27272a] bg-black/25 p-4 shadow-inner">
             <div className="flex justify-between items-center mb-2">
               <div className="font-mono text-[10px] uppercase tracking-widest text-pink-300">{key}</div>
               <div className="font-bold font-mono text-sm text-white">{Number(value).toFixed(1)} / {detailMap[key]?.max ?? 1}</div>
             </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/10">
+            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-[#27272a]">
               <div className="h-full rounded-full bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300" style={{ width: `${Math.min(100, (Number(value) / (detailMap[key]?.max || 1)) * 100)}%` }}></div>
             </div>
             <p className="text-[10px] t60 mt-2 leading-relaxed font-mono">{detailMap[key]?.meaning || "This factor contributes to the overall match and is reviewed as a part of the overall compatibility profile."}</p>

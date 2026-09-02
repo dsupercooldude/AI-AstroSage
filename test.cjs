@@ -1,10 +1,4 @@
-const { chromium } = require('playwright');
-(async () => {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-  page.on('pageerror', err => console.log('PAGE ERROR:', err));
-  await page.goto('http://localhost:3006');
-  await page.waitForTimeout(2000);
-  await browser.close();
-})();
+const fs = require('fs');
+let code = fs.readFileSync('src/jsx/pdf-report.jsx', 'utf8');
+
+// I will insert useEffect and state here

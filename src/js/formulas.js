@@ -308,7 +308,7 @@ window.calcDasha = (moonDeg, dobStr) => {
   let lordIdx = nakIdx % 9;
   const mahaYrs = window.VIMSHOTTARI_YEARS[window.PLANET_LORDS[lordIdx]];
   const bDate = new Date(dobStr || "2000-01-01");
-  let startYear = bDate.getFullYear() + (bDate.getMonth() / 12) - (mahaYrs * passedPct);
+  let startYear = bDate.getFullYear() + (bDate.getMonth() / 12) + (bDate.getDate() / 365.25) - (mahaYrs * passedPct);
   const periods = [];
   for (let i = 0; i < 9; i++) {
     const lrd = window.PLANET_LORDS[(lordIdx + i) % 9];
@@ -599,9 +599,10 @@ window.computeKundli = (profile, dateObj = null) => {
 
 window.getSolarSunTimes = (dateObj, lat = 19.076, lon = 72.8777, utc = 5.5) => {
   const rad = Math.PI / 180; const deg = 180 / Math.PI;
-  const year = dateObj.getUTCFullYear();
-  const month = dateObj.getUTCMonth();
-  const day = dateObj.getUTCDate();
+  // Use local methods since dateObj was constructed in the browser timezone
+  const year = dateObj.getFullYear();
+  const month = dateObj.getMonth();
+  const day = dateObj.getDate();
   const J2000 = 2451545.0;
   const JD = Math.floor(Date.UTC(year, month, day) / 86400000) - Math.floor(Date.UTC(2000, 0, 1) / 86400000) + J2000 + 0.5;
   const T = (JD - J2000) / 36525;
@@ -626,18 +627,20 @@ window.getSolarSunTimes = (dateObj, lat = 19.076, lon = 72.8777, utc = 5.5) => {
   const setTime = 12 * 60 + (H * 4) - eot - (lon * 4);
   
   const toDate = (mins) => {
-    const totalMins = Math.round(mins + utc * 60);
-    let h = Math.floor(totalMins / 60) % 24;
-    let m = Math.floor(totalMins % 60);
-    if (totalMins < 0) { h = 24 + Math.floor(totalMins / 60); m = Math.floor(totalMins % 60); }
-    return new Date(Date.UTC(year, month, day, h, m, 0));
+    let totalMins = Math.round(mins + utc * 60);
+    let d = day;
+    while (totalMins < 0) { totalMins += 24 * 60; d -= 1; }
+    while (totalMins >= 24 * 60) { totalMins -= 24 * 60; d += 1; }
+    let h = Math.floor(totalMins / 60);
+    let m = totalMins % 60;
+    return new Date(year, month, d, h, m, 0);
   };
   
   return {
     sunrise: toDate(riseTime),
     sunset: toDate(setTime),
-    moonrise: new Date(Date.UTC(year, month, day, Math.floor(19 + Math.random() * 4), Math.floor(Math.random() * 60), 0)),
-    moonset: new Date(Date.UTC(year, month, day, Math.floor(4 + Math.random() * 4), Math.floor(Math.random() * 60), 0))
+    moonrise: new Date(year, month, day, Math.floor(19 + Math.random() * 4), Math.floor(Math.random() * 60), 0),
+    moonset: new Date(year, month, day, Math.floor(4 + Math.random() * 4), Math.floor(Math.random() * 60), 0)
   };
 };
 
@@ -908,7 +911,7 @@ window.runVedicRuleEngine = (query, profile, kundli, targetDate) => {
   const satDeg = kundli.planetaryDegrees.Saturn.toFixed(2);
   const moonDeg = kundli.planetaryDegrees.Moon.toFixed(2);
 
-  const currentDecYear = targetDate.getFullYear() + (targetDate.getMonth() / 12) + (targetDate.getDate() / 365);
+  const currentDecYear = targetDate.getFullYear() + (targetDate.getMonth() / 12) + (targetDate.getDate() / 365.25);
   const mahaObj = kundli.dasha.find((d) => currentDecYear >= d.start && currentDecYear < d.end);
   const activeMaha = mahaObj ? mahaObj.lord : "Jupiter";
   let activeAntar = activeMaha;
@@ -945,7 +948,7 @@ window.generateDeepSynthesis = (pr, ch, bio, targetDate) => {
   
   // Calculate specific Mahadasha and Antardasha
   const tD = targetDate || new Date();
-  const currentDecYear = tD.getFullYear() + (tD.getMonth() / 12) + (tD.getDate() / 365);
+  const currentDecYear = tD.getFullYear() + (tD.getMonth() / 12) + (tD.getDate() / 365.25);
   const mahaObj = ch.dasha?.find((d) => currentDecYear >= d.start && currentDecYear < d.end);
   const activeMaha = mahaObj ? mahaObj.lord : "Sun";
   let activeAntar = activeMaha;

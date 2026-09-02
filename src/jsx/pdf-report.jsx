@@ -1,7 +1,55 @@
 // src/jsx/pdf-report.jsx
 var React = window.React;
 
-window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, chs }, ref) => {
+window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date, prs, chs }, ref) => {
+  const [palmistryHistory, setPalmistryHistory] = React.useState([]);
+  const [tarotHistory, setTarotHistory] = React.useState([]);
+  const [askSummary, setAskSummary] = React.useState("");
+
+  
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!emHash || !profile) return;
+      try {
+        const palmFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+        let ph = [];
+        try {
+           const pstr = typeof palmFile.content.history === "string" ? await window.CryptoUtils.decrypt(palmFile.content.history) : palmFile.content.history;
+           ph = typeof pstr === "string" ? JSON.parse(pstr) : pstr || [];
+        } catch(e){}
+        setPalmistryHistory(ph.filter(h => h.profileId === profile.id));
+
+        const tarotFile = await window.AppDB.getFile(`gl_tarot_${emHash}.json`);
+        let th = [];
+        try {
+           const tstr = typeof tarotFile.content.history === "string" ? await window.CryptoUtils.decrypt(tarotFile.content.history) : tarotFile.content.history;
+           th = typeof tstr === "string" ? JSON.parse(tstr) : tstr || [];
+        } catch(e){}
+        setTarotHistory(th.filter(h => h.profileId === profile.id));
+
+        const chatFile = await window.AppDB.getFile(`gl_chat_${emHash}.json`);
+        let chatHist = [];
+        try {
+           const cstr = typeof chatFile.content.history === "string" ? await window.CryptoUtils.decrypt(chatFile.content.history) : chatFile.content.history;
+           chatHist = typeof cstr === "string" ? JSON.parse(cstr) : cstr || [];
+        } catch(e){}
+        const thisProfileChat = chatHist.filter(m => !m.profileId || m.profileId === profile.id);
+        if (thisProfileChat.length > 0 && window.generateProfileSummary) {
+           const summary = window.generateProfileSummary(profile, thisProfileChat);
+           setAskSummary(summary);
+        } else {
+           setAskSummary("");
+        }
+      } catch (err) {
+        console.error("GhostPDFReport data load err", err);
+      }
+    };
+    
+    window.addEventListener('refreshPdfData', fetchData);
+    fetchData(); // initial fetch
+    return () => window.removeEventListener('refreshPdfData', fetchData);
+  }, [emHash, profile]);
+
   if (!profile || !ch) return <div ref={ref} className="hidden"></div>;
 
   const details = window.calculatePlanetaryDetails 
@@ -88,14 +136,14 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <div className="border-b border-amber-400/30 pb-6 mb-8 text-center">
           <h1 className="font-serif text-4xl text-amber-400 mb-2">Vedic Astrological Dossier</h1>
           <h2 className="text-2xl font-bold tracking-widest uppercase">{profile.name}</h2>
-          <p className="text-sm text-white/60 font-mono mt-2 bg-white/5 inline-block px-4 py-2 rounded-lg border border-white/10">
+          <p className="text-sm text-white/60 font-mono mt-2 bg-white/5 inline-block px-4 py-2 rounded-lg border border-[#27272a]">
             DOB: {profile.dob} | Time: {profile.time} | Location: {profile.place} <br/> 
             Generated: {date.toLocaleDateString()}
           </p>
         </div>
 
-        <div className="bg-[#121426] p-6 rounded-2xl border border-white/10 mb-8">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">
+        <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">
             The Jyotish Core Synthesis
           </h3>
           <div className="space-y-4 text-sm text-white/80 leading-relaxed font-mono">
@@ -106,8 +154,8 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         </div>
 
         <div className="grid grid-cols-2 gap-6 mb-8">
-          <div className="bg-[#121426] p-6 rounded-2xl border border-white/10">
-            <h3 className="font-serif text-lg text-amber-200 mb-3 border-b border-white/10 pb-2">Natal Matrix Highlights</h3>
+          <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a]">
+            <h3 className="font-serif text-lg text-amber-200 mb-3 border-b border-[#27272a] pb-2">Natal Matrix Highlights</h3>
             <ul className="text-sm space-y-4 font-mono">
               <li><span className="text-white/60 inline-block w-28">Ascendant:</span> <span className="font-bold text-amber-100">{ch.d1.lagna}</span></li>
               <li><span className="text-white/60 inline-block w-28">Moon Sign:</span> <span className="font-bold text-amber-100">{ch.moonSign}</span></li>
@@ -116,14 +164,14 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
             </ul>
           </div>
           
-          <div className="bg-[#121426] p-6 rounded-2xl border border-white/10">
-            <h3 className="font-serif text-lg text-amber-200 mb-3 border-b border-white/10 pb-2">Dynamic Prescriptions</h3>
+          <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a]">
+            <h3 className="font-serif text-lg text-amber-200 mb-3 border-b border-[#27272a] pb-2">Dynamic Prescriptions</h3>
             <ul className="text-sm space-y-4 font-mono">
               <li><span className="text-white/60 inline-block w-24">Deity:</span> <span className="font-bold text-amber-100">{dynamicRx.deity}</span></li>
               <li><span className="text-white/60 inline-block w-24">Gemstone:</span> <span className="font-bold text-amber-100">{dynamicRx.gem}</span></li>
               <li><span className="text-white/60 inline-block w-24">Charity:</span> <span className="font-bold text-amber-100">{dynamicRx.charity}</span></li>
             </ul>
-            <div className="mt-5 text-sm text-amber-400 bg-black/30 p-4 rounded-lg border border-white/5">
+            <div className="mt-5 text-sm text-amber-400 bg-black/30 p-4 rounded-lg border border-[#27272a]">
               <span className="text-white/60 block mb-1 uppercase text-[10px] tracking-widest">Active Mantra:</span> {dynamicRx.mantra}
             </div>
           </div>
@@ -139,18 +187,18 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Astrological Charts & Energy Cycles</h3>
         
         <div className="grid grid-cols-2 gap-6 mb-10">
-          <div className="bg-[#121426] p-5 rounded-2xl border border-white/10 flex flex-col items-center justify-center min-h-[350px]">
+          <div className="bg-[#121426] p-5 rounded-2xl border border-[#27272a] flex flex-col items-center justify-center min-h-[350px]">
             {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="NORTH" isExpert={false} titleDesc="North Indian (Diamond)" />}
           </div>
-          <div className="bg-[#121426] p-5 rounded-2xl border border-white/10 flex flex-col items-center justify-center min-h-[350px]">
+          <div className="bg-[#121426] p-5 rounded-2xl border border-[#27272a] flex flex-col items-center justify-center min-h-[350px]">
             {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="SOUTH" isExpert={false} titleDesc="South Indian (Grid)" />}
           </div>
         </div>
 
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">30-Day Biorhythm Progression</h3>
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a]">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">30-Day Biorhythm Progression</h3>
           
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-5 rounded-xl border border-white/5">
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-5 rounded-xl border border-[#27272a]">
             {deepSynthesis.pdfBiorhythm}
           </p>
 
@@ -169,7 +217,7 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
             </div>
           </div>
 
-          <div className="relative w-full h-40 bg-gradient-to-b from-black/40 to-black/10 rounded-xl border border-white/10 p-4">
+          <div className="relative w-full h-40 bg-gradient-to-b from-black/40 to-black/10 rounded-xl border border-[#27272a] p-4">
             <svg viewBox="0 -10 100 60" preserveAspectRatio="none" className="w-full h-full opacity-80 overflow-visible">
               <line x1="0" y1="20" x2="100" y2="20" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="0.5" strokeDasharray="2,2" />
               <path d={getWave(23)} fill="none" stroke="#F87171" strokeWidth="2" />
@@ -190,15 +238,15 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Planetary Alignments & Coordinates</h3>
         
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-6 border-b border-white/10 pb-2">Detailed Planetary Ledger</h3>
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-white/5">
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-6 border-b border-[#27272a] pb-2">Detailed Planetary Ledger</h3>
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             This ledger records the precise mathematical coordinates of the celestial bodies at your exact moment of birth. It serves as the foundational data for all astrological predictions and determines the exact sub-rulers (Nakshatras and Padas) that influence your core personality.
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-8 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">{deepSynthesis.advLedger}</p>
           <table className="w-full text-base font-mono text-left border-collapse">
             <thead>
-              <tr className="text-white/50 uppercase border-b border-white/10 text-sm">
+              <tr className="text-white/50 uppercase border-b border-[#27272a] text-sm">
                 <th className="pb-4">Graha (Planet)</th>
                 <th className="pb-4">Sign</th>
                 <th className="pb-4">Longitude</th>
@@ -210,7 +258,7 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
               {Object.entries(details).map(([planet, data]) => {
                 const pInfo = window.PLANET_INFO[planet] || { color: '#FFF' };
                 return (
-                  <tr key={planet} className="border-b border-white/5">
+                  <tr key={planet} className="border-b border-[#27272a]">
                     <td className="py-5 font-bold" style={{ color: pInfo.color }}>{pInfo.symbol} {planet}</td>
                     <td className="py-5 text-white/90">{data.rashi}</td>
                     <td className="py-5 text-amber-200">{data.longitudeStr}</td>
@@ -231,9 +279,9 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <div className="pdf-page pdf-shadbala w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Planetary Strengths</h3>
 
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-6 border-b border-white/10 pb-2">Shadbala (Six-Fold Strength)</h3>
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-white/5">
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-6 border-b border-[#27272a] pb-2">Shadbala (Six-Fold Strength)</h3>
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             {deepSynthesis.pdfShadbala}
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-6 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">{deepSynthesis.shadbalaMeaning}</p>
@@ -242,14 +290,14 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
               const pInfo = window.PLANET_INFO[planet]; 
               const percentage = Math.min(100, (score / 600) * 100);
               return (
-                <div key={planet} className="relative bg-black/20 p-3 rounded-xl border border-white/5">
+                <div key={planet} className="relative bg-black/20 p-3 rounded-xl border border-[#27272a]">
                   <div className="flex justify-between text-xs font-mono mb-2">
                     <span className="font-bold flex items-center gap-2" style={{ color: pInfo?.color }}>
                       <span className="text-lg">{pInfo?.symbol}</span> {planet}
                     </span>
                     <span className="text-white/80 font-bold">{(score / 60).toFixed(1)} Rupas</span>
                   </div>
-                  <div className="h-[8px] bg-black/50 rounded-full overflow-hidden border border-white/5">
+                  <div className="h-[8px] bg-black/50 rounded-full overflow-hidden border border-[#27272a]">
                     <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: pInfo?.color }}></div>
                   </div>
                 </div>
@@ -266,17 +314,17 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Karmic Blueprint & Life Purpose</h3>
         
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">Jaimini Chara Karakas</h3>
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-white/5">
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">Jaimini Chara Karakas</h3>
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             In Jaimini Astrology, planets are assigned specific roles (Karakas) based entirely on their mathematical degrees, irrespective of the sign they sit in. Your highest degree planet becomes the Atma Karaka (Soul), governing your overarching life purpose.
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-6 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">For {profile.name}, each role below identifies a life area where the assigned planet expresses a recurring personal lesson. Read the role together with the planet shown, rather than treating it as a fixed prediction.</p>
 
           <div className="space-y-6 pdf-karaka-list">
             {Object.entries(jaimini).map(([karaka, planet]) => (
-              <div key={karaka} className="bg-black/20 p-6 rounded-xl border border-white/5 flex flex-col gap-3 shadow-sm">
-                <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <div key={karaka} className="bg-black/20 p-6 rounded-xl border border-[#27272a] flex flex-col gap-3 shadow-sm">
+                <div className="flex justify-between items-center border-b border-[#27272a] pb-3">
                   <span className="font-bold text-amber-200 font-mono text-lg">{karaka}</span>
                   <span className="font-bold text-2xl" style={{ color: window.PLANET_INFO[planet]?.color }}>{planet}</span>
                 </div>
@@ -297,17 +345,17 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Planetary Potency & Maturity</h3>
         
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">Baladi Avasthas (Maturity)</h3>
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-white/5">
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">Baladi Avasthas (Maturity)</h3>
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-8 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             Just because a planet is placed well does not mean it can deliver results. Baladi Avasthas determine the "age" or "potency" of a planet based on its degrees within a specific sign. A planet in "Youth" is highly potent, while a planet that is "Dead" requires intense conscious remediation.
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-6 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">These maturity labels explain how readily each planet can express its promise in your chart. A younger state usually acts with more immediate energy; an older or dormant state asks for more time, structure, and conscious effort in that planet's life area.</p>
 
           <div className="grid grid-cols-2 gap-3 pdf-avastha-list">
             {Object.entries(avasthas).map(([planet, avastha]) => (
-              <div key={planet} className="bg-black/20 p-5 rounded-xl border border-white/5 flex flex-col gap-3 shadow-sm">
-                <div className="flex justify-between items-center border-b border-white/10 pb-2">
+              <div key={planet} className="bg-black/20 p-5 rounded-xl border border-[#27272a] flex flex-col gap-3 shadow-sm">
+                <div className="flex justify-between items-center border-b border-[#27272a] pb-2">
                   <span className="font-bold text-xl" style={{ color: window.PLANET_INFO[planet]?.color }}>{planet}</span>
                   <span className="font-bold text-amber-200 font-mono text-base">{avastha}</span>
                 </div>
@@ -328,21 +376,21 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Real-Time Gochara (Transit) Impact</h3>
         
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">Current Planetary Vectors</h3>
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-white/5">
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">Current Planetary Vectors</h3>
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             While your birth chart is a fixed static map, Gochara translates the real-time movement of the planets in the sky <strong>today</strong> against that fixed map. These planetary transits dictate your immediate, real-world outcomes and shift constantly as the planets orbit.
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-6 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">{deepSynthesis.gocharaMeaning}</p>
 
           <div className="flex flex-col gap-8">
             {Object.entries(gochara).map(([domain, data]) => (
-              <div key={domain} className="bg-black/20 p-8 rounded-2xl border border-white/5 shadow-md">
+              <div key={domain} className="bg-black/20 p-8 rounded-2xl border border-[#27272a] shadow-md">
                 <div className="flex justify-between items-center mb-4">
                   <span className="font-bold text-amber-200 font-serif text-2xl capitalize">{domain.replace(/([A-Z])/g, ' $1').trim()} Sphere</span>
                   <span className="text-amber-400 font-mono font-bold text-xl">{Math.round(data.sc)}/100</span>
                 </div>
-                <div className="h-3 bg-black/50 rounded-full mb-5 overflow-hidden border border-white/5">
+                <div className="h-3 bg-black/50 rounded-full mb-5 overflow-hidden border border-[#27272a]">
                   <div className="h-full rounded-full bg-gradient-to-r from-amber-600 to-amber-400" style={{ width: `${data.sc}%` }}></div>
                 </div>
                 <div className="text-base text-white/80 font-mono leading-relaxed">
@@ -362,10 +410,10 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         
         <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Vimshottari Dasha Timeline</h3>
         
-        <div className="bg-[#121426] p-8 rounded-2xl border border-white/10 h-full">
-          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-white/10 pb-2">Your Active Operating System</h3>
+        <div className="bg-[#121426] p-8 rounded-2xl border border-[#27272a] h-full">
+          <h3 className="font-serif text-2xl text-amber-200 mb-4 border-b border-[#27272a] pb-2">Your Active Operating System</h3>
           
-          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-white/5">
+          <p className="text-sm text-white/80 leading-relaxed font-mono mb-10 bg-black/30 p-6 rounded-xl border border-[#27272a]">
             {deepSynthesis.pdfDasha}
           </p>
           <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-6 bg-amber-950/20 p-5 rounded-xl border border-amber-500/20">This operating-system metaphor means the active Mahadasha supplies the long-term theme, while the Antardasha describes the shorter-term way that theme is currently experienced in your work, relationships, decisions, and responsibilities.</p>
@@ -374,7 +422,7 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
             {displayDashas.map((d, i) => {
               const isActive = currentYear >= d.start && currentYear < d.end;
               return (
-                <div key={i} className={`p-6 border rounded-2xl ${isActive ? 'bg-amber-400/10 border-amber-400/50 shadow-lg shadow-amber-500/10' : 'bg-black/30 border-white/10 opacity-70'}`}>
+                <div key={i} className={`p-6 border rounded-2xl ${isActive ? 'bg-amber-400/10 border-amber-400/50 shadow-lg shadow-amber-500/10' : 'bg-black/30 border-[#27272a] opacity-70'}`}>
                   <div className={`font-bold mb-4 ${isActive ? 'text-amber-400 text-xl' : 'text-white text-lg'}`}>
                     {d.lord} Mahadasha <br/>
                     <span className="text-sm text-white/60">({Math.floor(d.start)} - {Math.floor(d.end)})</span>
@@ -403,22 +451,22 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-5 bg-amber-950/20 p-4 rounded-xl border border-amber-500/20">{deepSynthesis.monthlyMeaning}</p>
         <div className="flex flex-col gap-8">
           {yearlyForecast.slice(0, 3).map((m, idx) => (
-            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-white/10 shadow-lg">
-              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-white/5 pb-3">{m.month}</div>
+            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-[#27272a] shadow-lg">
+              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-[#27272a] pb-3">{m.month}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono text-white/80">
-                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-white/5">
+                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-amber-400 font-bold block mb-1">General Focus:</span> {m.general}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-blue-300 font-bold block mb-1">Career:</span> {m.career}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-green-300 font-bold block mb-1">Wealth:</span> {m.wealth}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-pink-300 font-bold block mb-1">Home:</span> {m.home}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-red-300 font-bold block mb-1">Health:</span> {m.health}
                 </div>
               </div>
@@ -435,22 +483,22 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-5 bg-amber-950/20 p-4 rounded-xl border border-amber-500/20">{deepSynthesis.monthlyMeaning}</p>
         <div className="flex flex-col gap-8">
           {yearlyForecast.slice(3, 6).map((m, idx) => (
-            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-white/10 shadow-lg">
-              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-white/5 pb-3">{m.month}</div>
+            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-[#27272a] shadow-lg">
+              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-[#27272a] pb-3">{m.month}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono text-white/80">
-                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-white/5">
+                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-amber-400 font-bold block mb-1">General Focus:</span> {m.general}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-blue-300 font-bold block mb-1">Career:</span> {m.career}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-green-300 font-bold block mb-1">Wealth:</span> {m.wealth}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-pink-300 font-bold block mb-1">Home:</span> {m.home}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-red-300 font-bold block mb-1">Health:</span> {m.health}
                 </div>
               </div>
@@ -467,22 +515,22 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-5 bg-amber-950/20 p-4 rounded-xl border border-amber-500/20">{deepSynthesis.monthlyMeaning}</p>
         <div className="flex flex-col gap-8">
           {yearlyForecast.slice(6, 9).map((m, idx) => (
-            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-white/10 shadow-lg">
-              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-white/5 pb-3">{m.month}</div>
+            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-[#27272a] shadow-lg">
+              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-[#27272a] pb-3">{m.month}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono text-white/80">
-                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-white/5">
+                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-amber-400 font-bold block mb-1">General Focus:</span> {m.general}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-blue-300 font-bold block mb-1">Career:</span> {m.career}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-green-300 font-bold block mb-1">Wealth:</span> {m.wealth}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-pink-300 font-bold block mb-1">Home:</span> {m.home}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-red-300 font-bold block mb-1">Health:</span> {m.health}
                 </div>
               </div>
@@ -499,22 +547,22 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         <p className="text-sm text-amber-100/90 leading-relaxed font-mono mb-5 bg-amber-950/20 p-4 rounded-xl border border-amber-500/20">{deepSynthesis.monthlyMeaning}</p>
         <div className="flex flex-col gap-8">
           {yearlyForecast.slice(9, 12).map((m, idx) => (
-            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-white/10 shadow-lg">
-              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-white/5 pb-3">{m.month}</div>
+            <div key={idx} className="p-6 bg-[#121426] rounded-2xl border border-[#27272a] shadow-lg">
+              <div className="font-bold text-amber-300 font-mono text-xl mb-4 border-b border-[#27272a] pb-3">{m.month}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono text-white/80">
-                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-white/5">
+                <div className="col-span-1 md:col-span-2 bg-black/30 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-amber-400 font-bold block mb-1">General Focus:</span> {m.general}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-blue-300 font-bold block mb-1">Career:</span> {m.career}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-green-300 font-bold block mb-1">Wealth:</span> {m.wealth}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-pink-300 font-bold block mb-1">Home:</span> {m.home}
                 </div>
-                <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <div className="bg-black/20 p-4 rounded-lg border border-[#27272a]">
                   <span className="text-red-300 font-bold block mb-1">Health:</span> {m.health}
                 </div>
               </div>
@@ -541,17 +589,17 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
                   return (
                     <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
                       <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Ashtakoot Milan (Compatibility)</h3>
-                      <div className="bg-[#121426] p-6 rounded-2xl border border-white/10 mb-6">
+                      <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-6">
                         <p className="text-sm text-white/80 mb-4 font-mono">The 36-point Ashtakoot compatibility system measures harmony across 8 dimensions of life partnership.</p>
                         <div className="text-lg font-bold text-amber-300 mb-2">Total Score: {Number(ashtakoot.score).toFixed(1)}/36</div>
-                        <div className="h-2 bg-black/50 rounded-full overflow-hidden border border-white/5 mb-4">
+                        <div className="h-2 bg-black/50 rounded-full overflow-hidden border border-[#27272a] mb-4">
                           <div className="h-full bg-gradient-to-r from-amber-600 to-emerald-400" style={{ width: `${Math.min(100, (ashtakoot.score / 36) * 100)}%` }}></div>
                         </div>
                         <div className="text-xs text-white/50 font-mono mt-2">Analysis between {p1.name} & {p2.name}</div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         {Object.entries(ashtakoot.details).map(([param, points]) => (
-                          <div key={param} className="bg-black/30 p-4 rounded-xl border border-white/5">
+                          <div key={param} className="bg-black/30 p-4 rounded-xl border border-[#27272a]">
                             <div className="text-xs text-white/60 uppercase font-mono mb-1 tracking-widest">{param}</div>
                             <div className="font-bold text-amber-200 text-lg">{Number(points).toFixed(1)}</div>
                           </div>
@@ -566,42 +614,85 @@ window.GhostPDFReport = React.forwardRef(({ profile, ch, bioScores, date, prs, c
         return null;
       })()}
 
+      {/* ==
       {/* ========================================== */}
       {/* PAGE 14: PALMISTRY HISTORY (IF AVAILABLE)  */}
       {/* ========================================== */}
-      {(() => {
-        try {
-          const storageKey = `astrograh_palmistry_history_${profile?.id || 'guest'}`;
-          const raw = localStorage.getItem(storageKey);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            const valid = parsed.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
-            if (valid.length > 0) {
-              const latest = valid[valid.length - 1];
-              return (
-                <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
-                  <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Hand Palmistry Analysis</h3>
-                  <div className="bg-[#121426] p-6 rounded-2xl border border-white/10 mb-8">
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="font-bold text-amber-300 text-xl">Hand Style</div>
-                      <div className="text-white/80 font-mono text-sm">{new Date(latest.ts).toLocaleDateString()}</div>
-                    </div>
-                    <div className="text-lg font-bold text-amber-200 mb-4">{latest.style}</div>
-                    <div className="text-white/80 font-mono text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-white/5">
-                      {latest.analysis}
-                    </div>
+      {palmistryHistory.length > 0 && (() => {
+          const valid = palmistryHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
+          if (valid.length > 0) {
+            const latest = valid[valid.length - 1];
+            return (
+              <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
+                <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Hand Palmistry Analysis</h3>
+                <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="font-bold text-amber-300 text-xl">Hand Style</div>
+                    <div className="text-white/80 font-mono text-sm">{new Date(latest.ts).toLocaleDateString()}</div>
                   </div>
-                  <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
-                    Palmistry readings from the last 30 days: {valid.length} capture(s)
+                  <div className="text-lg font-bold text-amber-200 mb-4">{latest.style}</div>
+                  <div className="text-white/80 font-mono text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-[#27272a]">
+                    {latest.analysis}
                   </div>
                 </div>
-              );
-            }
+                <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
+                  Palmistry readings from the last 30 days: {valid.length} capture(s)
+                </div>
+              </div>
+            );
           }
-        } catch (e) {}
-        return null;
+          return null;
       })()}
 
+      {/* ========================================== */}
+      {/* PAGE 15: TAROT HISTORY (IF AVAILABLE)      */}
+      {/* ========================================== */}
+      {tarotHistory.length > 0 && (() => {
+          const valid = tarotHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
+          if (valid.length > 0) {
+            const latest = valid[valid.length - 1];
+            return (
+              <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
+                <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Tarot Reading</h3>
+                <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="font-bold text-amber-300 text-xl">Question: {latest.question || "General Reading"}</div>
+                    <div className="text-white/80 font-mono text-sm">{new Date(latest.ts).toLocaleDateString()}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 mb-4">
+                     {latest.cards && latest.cards.map((c, idx) => (
+                        <div key={idx} className="bg-black/40 px-3 py-1.5 rounded-lg border border-[#27272a] text-sm text-amber-200 font-bold">
+                          {c.name} {c.isReversed ? "(Reversed)" : "(Upright)"}
+                        </div>
+                     ))}
+                  </div>
+                  <div className="text-white/80 font-mono text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-[#27272a]">
+                    {latest.analysis}
+                  </div>
+                </div>
+                <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
+                  Tarot readings from the last 30 days: {valid.length} reading(s)
+                </div>
+              </div>
+            );
+          }
+          return null;
+      })()}
+
+      {/* ========================================== */}
+      {/* PAGE 16: AI SAGE PROFILE SUMMARY           */}
+      {/* ========================================== */}
+      {askSummary && (
+        <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
+          <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">AI Sage Profile Summary</h3>
+          <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
+            <p className="text-sm text-white/80 mb-4 font-mono">This summary is synthesized from your ongoing discussions with the AI Vedic Sage.</p>
+            <div className="text-white/90 font-sans text-sm leading-relaxed whitespace-pre-wrap">
+              {askSummary}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

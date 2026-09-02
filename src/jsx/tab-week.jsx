@@ -14,7 +14,7 @@ window.WeekTab = ({ pr, ch }) => {
     setIsLoading(true);
     const now = Date.now();
 
-    // RESTORED: Smart local storage caching to save API calls
+    // Smart local storage caching to save API calls
     if (!force) {
       try {
         const cached = JSON.parse(localStorage.getItem(cacheKey));
@@ -27,7 +27,7 @@ window.WeekTab = ({ pr, ch }) => {
       } catch (e) {}
     }
 
-    // RESTORED: Dynamic AI/Logic Synthesis
+    // Dynamic AI/Logic Synthesis
     setTimeout(() => {
       const topPlanet = Object.entries(ch.shadbala || {}).sort((a,b)=>b[1]-a[1])[0]?.[0] || "Sun";
       const activeDasha = ch.dasha?.[0]?.lord || "Jupiter";
@@ -54,12 +54,15 @@ window.WeekTab = ({ pr, ch }) => {
 
   return (
     <div className="space-y-6 pb-12 gl-fadein mt-4">
-      <div className="bgcard rounded-3xl border border-white/10 p-6 shadow-xl relative overflow-hidden">
-        <div className="flex justify-between items-start mb-6 border-b border-white/10 pb-4">
+      <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-xl relative overflow-hidden">
+        <div className="flex justify-between items-start mb-6 border-b border-[#27272a] pb-4">
           <div>
-            <h3 className="font-serif text-2xl text-amber-400 flex items-center gap-3">
-              <i className="ph ph-calendar-blank"></i> 7-Day Precision Forecast
-            </h3>
+            <div className="flex items-center gap-3">
+              <h3 className="font-serif text-2xl text-amber-400 flex items-center gap-3">
+                <i className="ph ph-calendar-blank"></i> 7-Day Precision Forecast
+              </h3>
+              {window.SectionConfidence && <window.SectionConfidence score={88} type="ai" />}
+            </div>
             <p className="text-xs t50 font-mono mt-2">
               Deep synthesis of your Shadbala & Transits for the week.
             </p>
@@ -80,15 +83,15 @@ window.WeekTab = ({ pr, ch }) => {
         ) : (
           <div>
             <div className="grid grid-cols-1 gap-4">
-              <div className="bg-black/30 p-5 rounded-2xl border border-white/5 shadow-inner">
+              <div className="bg-black/30 p-5 rounded-2xl border border-[#27272a] shadow-inner">
                 <div className="text-[10px] text-amber-500 font-mono tracking-widest uppercase mb-2"><i className="ph ph-target"></i> Core Theme: {topPlanet} Dominance</div>
                 <p className="text-sm t85 leading-relaxed">{forecast?.theme}</p>
               </div>
-              <div className="bg-black/30 p-5 rounded-2xl border border-white/5 shadow-inner">
+              <div className="bg-black/30 p-5 rounded-2xl border border-[#27272a] shadow-inner">
                 <div className="text-[10px] text-emerald-400 font-mono tracking-widest uppercase mb-2"><i className="ph ph-briefcase"></i> Career & Wealth</div>
                 <p className="text-sm t85 leading-relaxed">{forecast?.career}</p>
               </div>
-              <div className="bg-black/30 p-5 rounded-2xl border border-white/5 shadow-inner">
+              <div className="bg-black/30 p-5 rounded-2xl border border-[#27272a] shadow-inner">
                 <div className="text-[10px] text-pink-400 font-mono tracking-widest uppercase mb-2"><i className="ph ph-heart"></i> Harmony & Home</div>
                 <p className="text-sm t85 leading-relaxed">{forecast?.home}</p>
               </div>

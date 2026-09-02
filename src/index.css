@@ -1,3 +1,6 @@
+:root {
+  color-scheme: dark;
+}
 @import "tailwindcss";
 body { overflow-x: hidden; }
 
@@ -12,8 +15,8 @@ select {
   padding-right: 2rem !important;
 }
 option {
-  background-color: #18181b; /* zinc-900 */
-  color: #fff;
+  background-color: #09090b !important;
+  color: #ffffff !important;
 }
 
 /* Google Translate Widget Beautification */
@@ -34,11 +37,32 @@ option {
   color: transparent !important;
   font-size: 0 !important;
 }
-.goog-te-gadget .goog-logo-link {
+.goog-te-gadget span {
   display: none !important;
 }
-.goog-te-gadget .goog-te-combo {
+.goog-te-gadget > div {
+  display: inline-flex !important;
+}
+.goog-te-gadget img {
+  display: none !important;
+}
+.goog-logo-link {
+  display: none !important;
+}
+.goog-te-combo {
   margin: 0 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background-color: #09090b !important;
+  color: #fff !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.skiptranslate.goog-te-gadget {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }
 .goog-te-banner-frame {
   display: none !important;

@@ -50,14 +50,13 @@ window.ReportsTab = ({ pr, ch, date }) => {
     <div className="space-y-6 pb-12 gl-fadein mt-4">
       
       {/* 1. PLANETARY LEDGER TABLE */}
-      <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl flex flex-col w-full">
-        <h3 className="font-serif text-base text-amber-200 mb-4 flex items-center gap-2">
-          <i className="ph ph-planet" style={{ fontSize: 20 }}></i> Detailed Planetary Ledger & Longitudes
-        </h3>
+      <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col w-full">
+        <div className="flex justify-between items-center w-full mb-4"><h3 className="font-serif text-base text-amber-200 flex items-center gap-2">
+          <i className="ph ph-planet" style={{ fontSize: 20 }}></i> Detailed Planetary Ledger & Longitudes</h3><window.SectionConfidence score={100} type="math" label="Vedic Math" /></div>
         <div className="overflow-x-auto mb-4 w-full">
           <table className="w-full text-xs font-mono text-left border-collapse">
             <thead>
-              <tr className="border-b border-white/10 t50 text-[10px] uppercase">
+              <tr className="border-b border-[#27272a] t50 text-[10px] uppercase">
                 <th className="pb-3">Graha</th>
                 <th className="pb-3">Rashi (Sign)</th>
                 <th className="pb-3">Longitude</th>
@@ -83,7 +82,7 @@ window.ReportsTab = ({ pr, ch, date }) => {
         </div>
         
         {/* DYNAMIC LEDGER SYNTHESIS - Replaced the copy/paste error with the actual code */}
-        <div className="bg-black/40 border border-white/5 rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner font-mono mt-2">
+        <div className="bg-black/40 border border-[#27272a] rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner font-mono mt-2">
           <strong className="text-amber-400 block mb-2">What this means for your specific chart:</strong> 
           {window.generateDeepSynthesis ? (window.generateDeepSynthesis(pr, ch, window.bio ? window.bio(pr?.dob, date || new Date(), pr?.utcOffset) : {p:0,e:0,i:0}, date || new Date()).advLedger || "This ledger translates each planet, sign, degree, nakshatra, and motion into plain-language guidance about your strengths, habits, relationships, responsibilities, and areas for patient improvement.") : "This ledger translates each planet, sign, degree, nakshatra, and motion into plain-language guidance about your strengths, habits, relationships, responsibilities, and areas for patient improvement."}
         </div>
@@ -92,20 +91,20 @@ window.ReportsTab = ({ pr, ch, date }) => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         
         {/* 2. JAIMINI CHARA KARAKAS */}
-        <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl flex flex-col h-full w-full">
-          <h3 className="font-serif text-sm text-amber-200 mb-3">Jaimini Chara Karakas</h3>
+        <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col h-full w-full">
+          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>Jaimini Chara Karakas</span> <window.SectionConfidence score={100} type="math" /></h3>
           <div className="space-y-2 font-mono text-xs mb-4 flex-grow">
             {Object.entries(jaimini).map(([karaka, planet]) => {
               const pInfo = window.PLANET_INFO[planet] || { color: "#FFF" };
               return (
-                <div key={karaka} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-white/5">
+                <div key={karaka} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-[#27272a]">
                   <span className="t60">{karaka}</span>
                   <span className="font-bold" style={{ color: pInfo.color }}>{planet}</span>
                 </div>
               );
             })}
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner">
+          <div className="bg-black/40 border border-[#27272a] rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner">
             <strong className="text-amber-400 block mb-2">Your Personal Karmic Mission:</strong>
             ● <strong>Your Soul Purpose (Atma Karaka):</strong> Because your highest degree planet is <strong style={{ color: window.PLANET_INFO[akPlanet]?.color }}>{akPlanet}</strong>, your ultimate destiny in this lifetime revolves around {soulLessons[akPlanet] || "discovering your unique path"}.<br/><br/>
             ● <strong>Your Career Guide (Amatya Karaka):</strong> With <strong style={{ color: window.PLANET_INFO[amkPlanet]?.color }}>{amkPlanet}</strong> acting as your career minister, you will achieve your greatest worldly success by {careerPaths[amkPlanet] || "focusing on your innate talents"}.<br/><br/>
@@ -114,20 +113,20 @@ window.ReportsTab = ({ pr, ch, date }) => {
         </div>
 
         {/* 3. BALADI AVASTHAS */}
-        <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl flex flex-col h-full w-full">
-          <h3 className="font-serif text-sm text-amber-200 mb-3">Planetary Baladi Avasthas</h3>
+        <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col h-full w-full">
+          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>Planetary Baladi Avasthas</span> <window.SectionConfidence score={100} type="math" /></h3>
           <div className="space-y-2 font-mono text-xs max-h-[220px] overflow-y-auto pr-1 mb-4 flex-grow beauty-scroll">
             {Object.entries(avasthas).map(([planet, avastha]) => {
               const pInfo = window.PLANET_INFO[planet] || { color: "#FFF" };
               return (
-                <div key={planet} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-white/5">
+                <div key={planet} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-[#27272a]">
                   <span style={{ color: pInfo.color }} className="font-bold">{planet}</span>
                   <span className="t85 text-[11px]">{avastha}</span>
                 </div>
               );
             })}
           </div>
-          <div className="bg-black/40 border border-white/5 rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner">
+          <div className="bg-black/40 border border-[#27272a] rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner">
             <strong className="text-amber-400 block mb-2">Your Planetary Battery Life:</strong> 
             Avasthas reveal the actual operating maturity of your planets.<br/><br/>
             ● {peakText}<br/><br/>

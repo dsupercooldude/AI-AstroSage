@@ -1,6 +1,6 @@
 var { useRef, useState, useEffect } = window.React;
 
-window.PalmistryTab = ({ pr }) => {
+window.PalmistryTab = ({ pr, settings, emHash }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [cameraReady, setCameraReady] = useState(false);
@@ -8,9 +8,32 @@ window.PalmistryTab = ({ pr }) => {
   const [handStyle, setHandStyle] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [question, setQuestion] = useState('What does this palm line reveal about my life path?');
+  
   const [chat, setChat] = useState([
     { role: 'assistant', text: 'This tool is intentionally limited to hand-only analysis. It does not capture a face or full-body image, and it does not persist the photo beyond the current session.' }
   ]);
+  
+  useEffect(() => {
+    let isMounted = true;
+    const loadHistory = async () => {
+      try {
+        const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+        const decH = typeof hFile.content.h === "string" ? await window.CryptoUtils.decrypt(hFile.content.h) : hFile.content.h || [];
+        if (isMounted && decH && decH.length > 0) setChat(decH);
+      } catch (e) {}
+    };
+    if (emHash) loadHistory();
+    return () => { isMounted = false; };
+  }, [emHash]);
+
+  const saveHistory = async (newChat) => {
+    try {
+      const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+      hFile.content.h = await window.CryptoUtils.encrypt(newChat);
+      await window.AppDB.saveFile(`gl_palmistry_${emHash}.json`, hFile.content, hFile.sha);
+    } catch (e) {}
+  };
+
   const [streaming, setStreaming] = useState(false);
 
   useEffect(() => {
@@ -87,7 +110,7 @@ window.PalmistryTab = ({ pr }) => {
       let ans = "";
       // Assume window.executeMultiProviderAI exists and is accessible
       if (window.executeMultiProviderAI) {
-         const res = await window.executeMultiProviderAI(prompt, {}, "You are an expert Vedic Palm Reader.");
+         const res = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic Palm Reader.");
          if (res && res.text) ans = res.text;
       }
       if (!ans && window.runVedicRuleEngine) {
@@ -174,7 +197,7 @@ window.PalmistryTab = ({ pr }) => {
     return (
     <div className="max-w-6xl mx-auto space-y-6 gl-fadein pb-20">
       
-      <div className="bgcard rounded-3xl border border-violet-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
+      <div className="bg-[#18181b] rounded-3xl border border-violet-500/30 p-6 flex flex-col md:flex-row justify-between items-center gap-4 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-indigo-500"></div>
         <div className="absolute -right-10 -top-10 text-violet-500/10"><window.Icon.Hand size={180} weight="fill" /></div>
         
@@ -201,13 +224,13 @@ window.PalmistryTab = ({ pr }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-3xl border border-white/10 bgcard p-4 shadow-xl flex flex-col">
+        <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl flex flex-col">
           <div className="flex justify-between items-center mb-3">
              <h3 className="font-serif text-lg text-violet-200">Live Capture</h3>
              <span className="text-[9px] font-mono uppercase text-white/40">Local Processing Only</span>
           </div>
           
-          <div className="relative flex-1 bg-black/60 rounded-2xl overflow-hidden border border-white/5 min-h-[300px] flex items-center justify-center">
+          <div className="relative flex-1 bg-black/60 rounded-2xl overflow-hidden border border-[#27272a] min-h-[300px] flex items-center justify-center">
             <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
             <div className="hand-overlay" />
             <div className="hand-box" />
@@ -223,14 +246,14 @@ window.PalmistryTab = ({ pr }) => {
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={captureFrame} className="px-3 py-2 rounded-xl bg-violet-500 text-black font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Capture Hand</button>
             <button onClick={stopCameraStream} className="px-3 py-2 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Stop Camera</button>
-            <button onClick={() => setQuestion('What is the message of my Life Line?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Life Line</button>
-            <button onClick={() => setQuestion('How strong is my heart line for love and relationships?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Heart Line</button>
-            <button onClick={() => setQuestion('What does my head line say about my career direction?')} className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Head Line</button>
+            <button onClick={() => setQuestion('What is the message of my Life Line?')} className="px-3 py-2 rounded-xl border border-[#27272a] bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Life Line</button>
+            <button onClick={() => setQuestion('How strong is my heart line for love and relationships?')} className="px-3 py-2 rounded-xl border border-[#27272a] bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Heart Line</button>
+            <button onClick={() => setQuestion('What does my head line say about my career direction?')} className="px-3 py-2 rounded-xl border border-[#27272a] bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Head Line</button>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bgcard p-4 shadow-xl">
-          <h3 className="font-serif text-lg text-violet-200 mb-3">Palm Interpretation</h3>
+        <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl">
+          <div className="flex justify-between items-center mb-3"><h3 className="font-serif text-lg text-violet-200">Palm Interpretation</h3><window.SectionConfidence score={75} type="ai" label="Vision AI" /></div>
 
           <div className="rounded-2xl border border-violet-500/20 bg-black/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -251,14 +274,14 @@ window.PalmistryTab = ({ pr }) => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bgcard p-4 shadow-xl">
-        <h3 className="font-serif text-lg text-violet-200 mb-3">Ask the palmistry guide</h3>
+      <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl">
+        <h3 className="flex justify-between items-center w-full font-serif text-lg text-violet-200 mb-3">Ask the palmistry guide <window.SectionConfidence score={85} type="ai" label="AI Palmistry Engine" /></h3>
         <div className="flex gap-2">
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="E.g., What does the break in my life line mean?"
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-500/50 text-white font-mono placeholder:text-white/30"
+            className="flex-1 bg-black/40 border border-[#27272a] rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-500/50 text-white font-mono placeholder:text-white/30"
           />
           <button onClick={askPalmistry} className="px-5 py-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold transition flex items-center justify-center shadow-lg shadow-violet-900/50">
              <window.Icon.PaperPlaneRight size={18} />
@@ -266,11 +289,11 @@ window.PalmistryTab = ({ pr }) => {
         </div>
       </div>
       
-      <div className="rounded-3xl border border-white/10 bgcard p-5 shadow-xl">
+      <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
         <div className="space-y-4 font-mono max-h-96 overflow-y-auto beauty-scroll pr-2">
           {chat.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600/20 border border-violet-500/30 text-violet-100' : 'bg-black/40 border border-white/10 text-white/80'}`}>
+              <div className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${m.role === 'user' ? 'bg-violet-600/20 border border-violet-500/30 text-violet-100' : 'bg-black/40 border border-[#27272a] text-white/80'}`}>
                 {m.role === "assistant" && <div className="text-[9px] text-violet-400 opacity-60 mb-1 font-bold tracking-widest uppercase flex items-center gap-1"><window.Icon.ShieldCheck size={12}/> AI Confidence: High</div>}
                 {m.text}
               </div>

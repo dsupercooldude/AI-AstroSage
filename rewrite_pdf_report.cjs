@@ -1,13 +1,7 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/jsx/pdf-report.jsx', 'utf8');
 
-code = code.replace(
-  /window.GhostPDFReport = React.forwardRef\(\(\{ profile, ch, bioScores, date, prs, chs \}, ref\) => \{/,
-  `window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date, prs, chs }, ref) => {
-  const [palmistryHistory, setPalmistryHistory] = React.useState([]);
-  const [tarotHistory, setTarotHistory] = React.useState([]);
-  const [askSummary, setAskSummary] = React.useState("");
-
+const newEffect = `
   React.useEffect(() => {
     const fetchData = async () => {
       if (!emHash || !profile) return;
@@ -18,7 +12,6 @@ code = code.replace(
            const pstr = typeof palmFile.content.history === "string" ? await window.CryptoUtils.decrypt(palmFile.content.history) : palmFile.content.history;
            ph = typeof pstr === "string" ? JSON.parse(pstr) : pstr || [];
         } catch(e){}
-        // filter by profile id
         setPalmistryHistory(ph.filter(h => h.profileId === profile.id));
 
         const tarotFile = await window.AppDB.getFile(\`gl_tarot_\${emHash}.json\`);
@@ -42,12 +35,21 @@ code = code.replace(
         } else {
            setAskSummary("");
         }
-
       } catch (err) {
         console.error("GhostPDFReport data load err", err);
       }
     };
-    fetchData();
-  }, [emHash, profile]);`
-);
-fs.writeFileSync('src/jsx/pdf-report.jsx', code);
+    
+    window.addEventListener('refreshPdfData', fetchData);
+    fetchData(); // initial fetch
+    return () => window.removeEventListener('refreshPdfData', fetchData);
+  }, [emHash, profile]);
+`;
+
+const startIndex = code.indexOf('React.useEffect(() => {');
+const endIndex = code.indexOf('}, [emHash, profile]);') + '}, [emHash, profile]);'.length;
+
+if (startIndex !== -1 && endIndex !== -1) {
+  code = code.substring(0, startIndex) + newEffect + code.substring(endIndex);
+  fs.writeFileSync('src/jsx/pdf-report.jsx', code);
+}

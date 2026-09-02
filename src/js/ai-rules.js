@@ -157,37 +157,47 @@ const callHuggingFace = async (apiKey) => {
     { id: "free-ai", fn: callPollinations, key: "free" }
   ];
 
-  if (preferredModel !== "auto" && preferredModel !== "offline") {
+    if (preferredModel !== "auto" && preferredModel !== "offline") {
     const target = providers.find((p) => p.id === preferredModel);
     if (target && target.key) {
       try {
         const txt = await target.fn(target.key);
-        if (txt) return { text: txt, provider: target.id };
+        if (txt) {
+          const tokens = Math.ceil((prompt.length + txt.length) / 4);
+          window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: target.id, tokens } }));
+          return { text: txt, provider: target.id, tokens };
+        }
       } catch (err) {
         failures.push(`${preferredModel}: ${err.message}`);
         console.warn(`Preferred provider ${preferredModel} failed, cascading...`, err);
       }
     }
   }
-
+  
   const availableProviders = providers.filter((prov) => prov.key || prov.id === "free-ai");
   const cursorKey = "gl_ai_provider_cursor";
   let cursor = 0;
   try { cursor = Number.parseInt(localStorage.getItem(cursorKey) || "0", 10) || 0; } catch (e) {}
+  
   const rotatedProviders = availableProviders.length ? availableProviders.map((_, index) => availableProviders[(cursor + index) % availableProviders.length]) : [];
+  
   for (const prov of rotatedProviders) {
       try {
         const txt = await prov.fn(prov.key);
         if (txt) {
           try { localStorage.setItem(cursorKey, String((providers.findIndex((item) => item.id === prov.id) + 1) % providers.length)); } catch (e) {}
           window.lastAIProviderErrors = failures;
-          return { text: txt, provider: prov.id };
+          
+          const tokens = Math.ceil((prompt.length + txt.length) / 4);
+          window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: prov.id, tokens } }));
+          return { text: txt, provider: prov.id, tokens };
         }
       } catch (err) {
         failures.push(`${prov.id}: ${err.message}`);
         console.warn(`Provider ${prov.id} failed, trying next...`, err);
       }
   }
+
   window.lastAIProviderErrors = failures;
   return null;
 };
@@ -296,7 +306,7 @@ window.runVedicRuleEngine = (query, profile, kundli, targetDate, learnedContext 
   const pK = window.WEEKDAY ? window.WEEKDAY[targetDate.getDay()] : "Sun";
   const rulingPlanet = { Sun: "Sun", Mon: "Moon", Tue: "Mars", Wed: "Mercury", Thu: "Jupiter", Fri: "Venus", Sat: "Saturn" }[pK] || "Sun";
   
-  const currentDecYear = targetDate.getFullYear() + (targetDate.getMonth() / 12) + (targetDate.getDate() / 365);
+  const currentDecYear = targetDate.getFullYear() + (targetDate.getMonth() / 12) + (targetDate.getDate() / 365.25);
   const mahaObj = kundli.dasha?.find((d) => currentDecYear >= d.start && currentDecYear < d.end);
   const activeMaha = mahaObj ? mahaObj.lord : "Jupiter";
   let activeAntar = activeMaha;

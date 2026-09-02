@@ -53,7 +53,7 @@ class ErrorBoundaryComponent extends BaseComponent {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-[#0b0d19] text-white flex flex-col items-center justify-center p-6 text-center font-sans">
-          <div className="max-w-md bgcard2 border border-red-500/30 rounded-3xl p-8 shadow-2xl">
+          <div className="max-w-md bg-[#09090b] border border-red-500/30 rounded-3xl p-8 shadow-2xl">
             <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto mb-4 border border-red-500/30 font-bold text-xl">!</div>
             <h2 className="font-serif text-2xl text-amber-300 mb-2">Application Notice</h2>
             <p className="text-xs text-white/70 font-mono mb-4 leading-relaxed">
@@ -302,5 +302,17 @@ window.DataConfidenceBadge = ({ localData, context }) => {
                 </div>
             )}
         </div>
+    );
+};
+window.SectionConfidence = ({ score, type = "math", label }) => {
+    const isMath = type === "math";
+    return (
+        <span className={`text-[9px] font-mono uppercase px-2 py-1 rounded border inline-flex items-center gap-2 ml-3 shadow-inner ${isMath ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-violet-500/10 text-violet-400 border-violet-500/30'}`}>
+            <span className="flex items-center gap-1"><window.Icon.ShieldCheck size={12} /> {label || (isMath ? "Math Engine" : "AI Interpretation")}</span>
+            <div className={`w-16 h-1.5 rounded-full overflow-hidden border ${isMath ? 'bg-emerald-950 border-emerald-500/20' : 'bg-violet-950 border-violet-500/20'}`}>
+                <div className={`h-full transition-all ${isMath ? 'bg-emerald-500 shadow-[0_0_4px_#10b981]' : 'bg-violet-500 shadow-[0_0_4px_#8b5cf6]'}`} style={{ width: `${score}%` }}></div>
+            </div>
+            <span>{score}%</span>
+        </span>
     );
 };

@@ -40,7 +40,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
 
   return (
     <div className="space-y-4 w-full max-w-lg mx-auto">
-      <div className="flex flex-col items-center justify-center p-6 bg-black/30 rounded-2xl border border-white/5 shadow-inner">
+      <div className="flex flex-col items-center justify-center p-6 bg-black/30 rounded-2xl border border-[#27272a] shadow-inner">
         <div className="text-center font-serif text-lg text-amber-200 mb-6">{ac.lagna} Lagna Chart</div>
 
         {/* NORTH INDIAN CHART (DIAMOND SVG) */}
@@ -115,7 +115,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
                     <div className="flex-1 flex flex-wrap content-center justify-center gap-1.5 font-mono text-[9px] font-bold mt-1">
                       {h && getHousePlanets(h).map(renderPlanet)}
                     </div>
-                    {isHovered && h && <div className="text-[7px] text-amber-300 mt-1 bg-black/60 px-1 py-0.5 rounded text-center border border-white/10">{houseMeanings[h]}</div>}
+                    {isHovered && h && <div className="text-[7px] text-amber-300 mt-1 bg-black/60 px-1 py-0.5 rounded text-center border border-[#27272a]">{houseMeanings[h]}</div>}
                   </div>
                 );
               })}
@@ -127,7 +127,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
         {st === "east" && (
           <div className="grid grid-cols-4 gap-2 z-10 text-[9px] font-mono text-center w-full">
             {Object.entries(ac.houses || {}).map(([houseNum, sign]) => (
-              <div key={houseNum} className="p-2 bg-white/5 border border-white/10 rounded-xl min-h-[70px] flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
+              <div key={houseNum} className="p-2 bg-white/5 border border-[#27272a] rounded-xl min-h-[70px] flex flex-col items-center justify-center shadow-lg relative overflow-hidden">
                 <div className="absolute top-1 left-1.5 text-[8px] t40">{houseNum}</div>
                 <div className="absolute top-1 right-1.5 font-bold text-amber-200/50">{sign.substring(0,3).toUpperCase()}</div>
                 <div className="mt-4 w-full flex flex-wrap justify-center gap-1.5 leading-tight">
@@ -143,9 +143,9 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
       {/* EXPERT KP TABLE */}
       {((isExpert || isKpView) && kpTable) && (
         <div className="overflow-x-auto pt-4 gl-fadein w-full">
-          <table className="w-full text-[10px] font-mono text-left border-collapse bg-black/40 border border-white/10 rounded-xl shadow-lg">
+          <table className="w-full text-[10px] font-mono text-left border-collapse bg-black/40 border border-[#27272a] rounded-xl shadow-lg">
             <thead>
-              <tr className="border-b border-white/10 t50 uppercase"><th className="pb-2 pt-2 pl-3">Planet</th><th className="pb-2 pt-2">Sign</th><th className="pb-2 pt-2">Nakshatra</th><th className="pb-2 pt-2">Sub Lord</th></tr>
+              <tr className="border-b border-[#27272a] t50 uppercase"><th className="pb-2 pt-2 pl-3">Planet</th><th className="pb-2 pt-2">Sign</th><th className="pb-2 pt-2">Nakshatra</th><th className="pb-2 pt-2">Sub Lord</th></tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {Object.entries(kpTable).map(([p, info]) => (

@@ -120,6 +120,31 @@ export default function App() {
   const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [activeTabId, setActiveTabId] = useState("person");
+
+  useEffect(() => {
+    const handleTabChange = (e: any) => setActiveTabId(e.detail);
+    
+    const handleTokenUsage = (e: any) => {
+      const { engine, tokens } = e.detail;
+      setUser((prev: any) => {
+        const newSettings = { ...prev.settings };
+        if (!newSettings.tokenUsage) newSettings.tokenUsage = {};
+        newSettings.tokenUsage[engine] = (newSettings.tokenUsage[engine] || 0) + tokens;
+        const newUser = { ...prev, settings: newSettings };
+        localStorage.setItem("gl_active_user", JSON.stringify(newUser));
+        return newUser;
+      });
+    };
+    
+    window.addEventListener('tabChanged', handleTabChange);
+    window.addEventListener('aiTokenUsage', handleTokenUsage);
+    
+    return () => {
+      window.removeEventListener('tabChanged', handleTabChange);
+      window.removeEventListener('aiTokenUsage', handleTokenUsage);
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     id: "",
@@ -458,8 +483,45 @@ export default function App() {
 
   const activeChart = activeProfile ? charts[activeProfile.id] : null;
 
+  const bgImages: Record<string, string> = {
+    person: "https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=1920&auto=format&fit=crop",
+    reports: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1920&auto=format&fit=crop",
+    panchang: "https://images.unsplash.com/photo-1550503028-2b0e6df29fdb?q=80&w=1920&auto=format&fit=crop", // Sunset sky
+    union: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1920&auto=format&fit=crop",
+    palmistry: "https://images.unsplash.com/photo-1618666012174-83b441c0bc76?q=80&w=1920&auto=format&fit=crop",
+    tarot: "https://images.unsplash.com/photo-1515825838458-f2a94b20105a?q=80&w=1920&auto=format&fit=crop", // Nebula / deep purple
+    week: "https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?q=80&w=1920&auto=format&fit=crop",
+    month: "https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=1920&auto=format&fit=crop",
+    ask: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1920&auto=format&fit=crop" // Mystic AI / purple energy
+  };
+
+  const themeMap: Record<string, string> = {
+    person: "from-indigo-950/20 via-black to-slate-950/10",
+    reports: "from-blue-950/20 via-black to-cyan-950/10",
+    panchang: "from-amber-950/40 via-orange-950/20 to-rose-950/30",
+    union: "from-pink-950/20 via-black to-rose-950/10",
+    palmistry: "from-violet-950/20 via-black to-purple-950/10",
+    tarot: "from-purple-950/40 via-fuchsia-950/20 to-indigo-950/40",
+    week: "from-indigo-950/20 via-black to-blue-950/10",
+    month: "from-slate-900/30 via-black to-slate-950",
+    ask: "from-fuchsia-950/40 via-purple-950/20 to-violet-950/40"
+  };
+
+  const activeTheme = themeMap[activeTabId] || "from-black via-black to-black";
+
   return (
     <div className="min-h-screen w-full font-sans pb-16 bg-transparent text-slate-200 selection:bg-indigo-500 selection:text-white relative">
+      <div className="fixed inset-0 -z-30 bg-black"></div>
+      {/* Background Images for Preloading to avoid flicker */}
+      {Object.entries(bgImages).map(([key, url]) => (
+        <div 
+          key={key}
+          className={`fixed inset-0 -z-20 transition-opacity duration-1000 bg-cover bg-center bg-no-repeat ${activeTabId === key ? 'opacity-40' : 'opacity-0'}`}
+          style={{ backgroundImage: `url(${url})` }}
+        ></div>
+      ))}
+      <div className={`fixed inset-0 -z-10 bg-gradient-to-br transition-colors duration-1000 ${activeTheme} opacity-90`}></div>
+
       <datalist id="gotras">{(window as any).GOTRAS?.map((g: string) => (<option key={g} value={g} />))}</datalist>
       <datalist id="jaatis">{(window as any).JAATIS?.map((j: string) => (<option key={j} value={j} />))}</datalist>
 
