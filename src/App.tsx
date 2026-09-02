@@ -97,20 +97,7 @@ export default function App() {
         return JSON.parse(sess);
       }
     } catch (e) {}
-    // Default guest vault session to showcase full astrological functionality immediately
-    return {
-      email: "guest.sage@astrograh.local",
-      emailHash: "guest_vault_default",
-      profiles: SEED_PROFILES,
-      settings: {
-        aiModel: "free-ai",
-        monthSystem: "amanta",
-        kundaliStyle: "north",
-        apiKeys: {}
-      },
-      mfaEnabled: false,
-      isGuest: true
-    };
+    return null;
   });
 
   const [date, setDate] = useState<Date>(new Date());
@@ -129,6 +116,7 @@ export default function App() {
     const handleTokenUsage = (e: any) => {
       const { engine, tokens } = e.detail;
       setUser((prev: any) => {
+        if (!prev) return prev;
         const newSettings = { ...prev.settings };
         if (!newSettings.tokenUsage) newSettings.tokenUsage = {};
         newSettings.tokenUsage[engine] = (newSettings.tokenUsage[engine] || 0) + tokens;
@@ -314,14 +302,7 @@ export default function App() {
     try {
       localStorage.removeItem("gl_active_user");
     } catch (e) {}
-    setUser({
-      email: "guest.sage@astrograh.local",
-      emailHash: "guest_vault_default",
-      profiles: SEED_PROFILES,
-      settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} },
-      mfaEnabled: false,
-      isGuest: true
-    });
+    setUser(null);
   };
 
   const handleOpenEdit = (profileObj: any = {}) => {
@@ -510,6 +491,46 @@ export default function App() {
 
   const activeTheme = themeMap[activeTabId] || "from-black via-black to-black";
 
+  if (!user) {
+    const AuthModal = (window as any).AuthModal;
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center font-sans bg-black text-slate-200 relative p-6">
+        <div className="fixed inset-0 -z-30 bg-[#09090b]"></div>
+        <div className="fixed inset-0 -z-20 bg-[url('https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2094&auto=format&fit=crop')] bg-cover bg-center opacity-10"></div>
+        
+        <div className="text-center bg-black/60 backdrop-blur-xl p-10 rounded-3xl border border-[#27272a] shadow-2xl max-w-lg w-full z-10">
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-900 to-black border border-indigo-500/30 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor" className="text-indigo-400">
+                <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm40-88a8,8,0,0,1-8,8H136v24a8,8,0,0,1-16,0V136H96a8,8,0,0,1,0-16h24V96a8,8,0,0,1,16,0v24h24A8,8,0,0,1,168,128Z"></path>
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Graha Ledger</h1>
+          <p className="text-sm text-indigo-200/70 font-mono uppercase tracking-widest mb-8">Vedic Jyotish & Biorhythm</p>
+          
+          <p className="text-slate-400 text-sm leading-relaxed mb-8">
+            The Astrological Synthesis Engine. Connect your Cloud Vault to access predictive horoscopes, offline biorhythms, and personalized Vedic insights.
+          </p>
+          
+          <button 
+            onClick={() => setShowAuthModal(true)} 
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-xl transition font-medium flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
+          >
+            Sign In / Create Vault
+          </button>
+        </div>
+
+        {showAuthModal && AuthModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <button onClick={() => setShowAuthModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white z-50 text-sm font-mono tracking-widest uppercase">✕ Close</button>
+            <AuthModal onLogin={(d: any) => { setUser(d); setShowAuthModal(false); if (d?.profiles?.length) setActiveProfileId(d.profiles[0].id); }} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full font-sans pb-16 bg-transparent text-slate-200 selection:bg-indigo-500 selection:text-white relative">
       <div className="fixed inset-0 -z-30 bg-black"></div>
@@ -570,14 +591,7 @@ export default function App() {
             (window as any).AppDB?.clearConfig();
             setAdminConsoleOpen(false);
             setDbConfigured(false);
-            setUser({
-              email: "guest.sage@astrograh.local",
-              emailHash: "guest_vault_default",
-              profiles: SEED_PROFILES,
-              settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} },
-              mfaEnabled: false,
-              isGuest: true
-            });
+            setUser(null);
           }}
         />
       )}
@@ -650,7 +664,7 @@ export default function App() {
               <Icon name="shield-check" size={16} />
             </button>
 
-            {user && !user.isGuest && (
+            {user && (
               <button
                 onClick={logoutUser}
                 title="Sign Out"

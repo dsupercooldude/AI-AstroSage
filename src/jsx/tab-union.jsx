@@ -16,6 +16,7 @@ window.CompatTab = ({ prs, chs, settings }) => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [loadingAi, setLoadingAi] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(null);
+  const [aiProvider, setAiProvider] = useState(null);
 
   const persistPair = (nextPair) => {
     setPairIds(nextPair);

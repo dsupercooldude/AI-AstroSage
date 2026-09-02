@@ -10,6 +10,7 @@ window.TarotTab = ({ settings, emHash }) => {
   const [reading, setReading] = useState("");
   const [isDrawing, setIsDrawing] = useState(false);
   const [tokenUsage, setTokenUsage] = useState(null);
+  const [aiProvider, setAiProvider] = useState(null);
 
   useEffect(() => {
     const suits = ["Wands", "Cups", "Swords", "Pentacles"];
