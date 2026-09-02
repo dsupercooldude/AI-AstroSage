@@ -64,12 +64,20 @@ window.MonthTab = ({ pr, ch }) => {
               Monthly cached AI synthesis for long-term planning and spiritual preparation.
             </p>
           </div>
-          <button 
-            onClick={() => fetchMonthlyAI(true)}
-            className="text-[10px] uppercase font-bold text-amber-400 border border-amber-400/30 rounded-full px-4 py-2 hover:bg-amber-400/10 transition shadow-lg flex items-center gap-2"
-          >
-            <i className={`ph ph-arrows-clockwise ${isLoading ? 'animate-spin' : ''}`}></i> Refresh Forecast
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button 
+             onClick={() => window.generateICS(pr, ch, 30)}
+             className="text-[10px] uppercase font-bold text-indigo-400 border border-indigo-400/30 rounded-full px-4 py-2 hover:bg-indigo-400/10 transition shadow-lg flex items-center gap-2"
+            >
+              <i className="ph ph-calendar-plus"></i> Sync to Calendar
+            </button>
+            <button 
+             onClick={() => fetchMonthlyAI(true)}
+             className="text-[10px] uppercase font-bold text-amber-400 border border-amber-400/30 rounded-full px-4 py-2 hover:bg-amber-400/10 transition shadow-lg flex items-center gap-2"
+            >
+              <i className={`ph ph-arrows-clockwise ${isLoading ? 'animate-spin' : ''}`}></i> Refresh Forecast
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

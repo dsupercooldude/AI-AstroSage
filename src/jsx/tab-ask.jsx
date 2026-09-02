@@ -49,7 +49,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
   async function ask(e) {
     if (e) e.preventDefault();
     if (!q.trim() || l) return;
-    if (window.updateOfflineRules) window.updateOfflineRules(q.trim(), "");
+    
     const userPrompt = q.trim();
     setL(true);
     let ans = "";
@@ -86,6 +86,11 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       const newQA = { id: Date.now(), q: userPrompt, a: ans, v: usedProvider, p: pr?.id };
       const nx = [...h, newQA];
       setH(nx);
+      
+      // Async fire-and-forget learning mechanism
+      if (window.updateOfflineRules) {
+        window.updateOfflineRules(userPrompt, ans, set);
+      }
       setQ("");
       
       try {
@@ -259,7 +264,11 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
                       set,
                       "You are an expert Vedic Astrologer synthesizing a client profile."
                     );
-                    setSummary(res?.text || "Synthesis failed.");
+                    if (res?.text) {
+      setSummary(res.text);
+  } else {
+      setSummary("Synthesis failed. Errors: " + (window.lastAIProviderErrors ? window.lastAIProviderErrors.join(", ") : "Unknown error"));
+  }
                   } catch (e) {
                     setSummary("Error: " + e.message);
                   } finally {

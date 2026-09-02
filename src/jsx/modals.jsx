@@ -319,7 +319,7 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
           <select value={localSet.aiModel || "auto"} onChange={(e) => handleSelectChange("aiModel", e.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-xs outline-none text-white font-medium">
             <option className="bg-[#09090b] text-white" value="auto" >Auto (Smart Load-Balancing & Automatic Fallback)</option>
             <option className="bg-[#09090b] text-white" value="offline" >Offline Vedic Rule Engine (100% Local / Zero API Required)</option>
-            <option className="bg-[#09090b] text-white" value="gemini" >Google Gemini 3.5 Flash (Preferred)</option>
+            <option className="bg-[#09090b] text-white" value="gemini" >Google Gemini 3.8 Flash (Preferred)</option>
             <option className="bg-[#09090b] text-white" value="openai" >OpenAI GPT-4o Mini (Preferred)</option>
             <option className="bg-[#09090b] text-white" value="groq" >Groq (Ultra-Fast Llama 3.1)</option>
             <option className="bg-[#09090b] text-white" value="deepseek" >DeepSeek V3</option>

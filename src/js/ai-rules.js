@@ -9,14 +9,17 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
   const failures = [];
 
   const callGemini = async (apiKey) => {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const body = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+    };
+    if (systemPrompt && systemPrompt.trim() !== "") {
+      body.systemInstruction = { role: "system", parts: [{ text: systemPrompt }] };
+    }
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
-      })
+      body: JSON.stringify(body)
     });
     if (!res.ok) {
       let detail = "";
@@ -54,7 +57,7 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
+        model: "llama3-8b-8192",
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
         temperature: 0.7,
         max_tokens: 4096
@@ -136,7 +139,7 @@ const callPollinations = async () => {
   });
   if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
   const data = await res.json();
-  return data.choices?.[0]?.message?.content;
+  return data.choices?.[0]?.message?.content || "";
 };
 
 const callHuggingFace = async (apiKey) => {
@@ -174,7 +177,7 @@ const callHuggingFace = async (apiKey) => {
         const txt = await target.fn(target.key);
         if (txt) {
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = target ? target.id : (prov ? prov.id : "ai");
+          window.lastAIProvider = (typeof target !== "undefined" && target) ? target.id : ((typeof prov !== "undefined" && prov) ? prov.id : "ai");
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: target.id, tokens } }));
           window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: target.id, tokens } }));
           return { text: txt, provider: target.id, tokens };
@@ -201,7 +204,7 @@ const callHuggingFace = async (apiKey) => {
           window.lastAIProviderErrors = failures;
           
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = target ? target.id : (prov ? prov.id : "ai");
+          window.lastAIProvider = (typeof target !== "undefined" && target) ? target.id : ((typeof prov !== "undefined" && prov) ? prov.id : "ai");
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: prov.id, tokens } }));
           window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: prov.id, tokens } }));
           return { text: txt, provider: prov.id, tokens };
@@ -288,15 +291,34 @@ window.generateOfflineYearlyHoroscope = (pr, ch, targetDate) => {
 };
 
 
-window.updateOfflineRules = (userMsg, aiMsg) => {
+window.updateOfflineRules = async (userMsg, aiMsg, settings) => {
     try {
         let rules = JSON.parse(localStorage.getItem('gl_offline_learned_rules') || '[]');
-        // simple keyword extraction to "learn"
+        
+        if (aiMsg && settings && settings.aiModel !== "offline" && window.executeMultiProviderAI) {
+             try {
+                const prompt = `Extract 1 or 2 concise, generalized astrological preferences or rules based on this interaction to improve future readings. Do not include specific names, dates, or the question itself. Just the rule.
+
+User: ${userMsg}
+AI: ${aiMsg.slice(0,500)}`;
+                const extracted = await window.executeMultiProviderAI(prompt, settings, "You are a backend rule extractor. Output ONLY bullet points. Keep it extremely brief.");
+                if (extracted) {
+                    const newRules = extracted.split('\n').map(r => r.replace(/^[-*•]\s*/, '').trim()).filter(r => r.length > 5);
+                    rules = [...rules, ...newRules];
+                }
+             } catch(e) {
+                console.warn("AI rule extraction failed, using fallback.", e);
+             }
+        }
+        
+        // simple keyword fallback
         if (userMsg.toLowerCase().includes('career')) rules.push("User prioritizes career questions.");
         if (userMsg.toLowerCase().includes('health')) rules.push("User focuses on health analysis.");
-        if (userMsg.toLowerCase().includes('marriage')) rules.push("User focuses on marriage and relationships.");
-        // keep unique and last 10
-        rules = [...new Set(rules)].slice(-10);
+        if (userMsg.toLowerCase().includes('marriage') || userMsg.toLowerCase().includes('relationship')) rules.push("User focuses on marriage and relationships.");
+        if (userMsg.toLowerCase().includes('finance') || userMsg.toLowerCase().includes('money')) rules.push("User focuses on financial prosperity.");
+        
+        // keep unique and last 15
+        rules = [...new Set(rules)].slice(-15);
         localStorage.setItem('gl_offline_learned_rules', JSON.stringify(rules));
     } catch(e) {}
 };

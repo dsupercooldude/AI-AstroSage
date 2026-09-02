@@ -9,6 +9,7 @@ import './js/ai-rules.js';
 import './js/database.js';
 import './js/passkeys.js';
 import './js/pdf-validation.js';
+import './js/calendar.js';
 
 import App from './App.tsx';
 import './index.css';
