@@ -222,7 +222,10 @@ const bootInterval = setInterval(() => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div id="google_translate_element" className="mr-3 scale-75 md:scale-90 origin-right"></div>
+                <div className="flex flex-col md:flex-row items-end md:items-center gap-1 md:gap-3 mr-2 md:mr-4">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold whitespace-nowrap">Please select Language:</span>
+                  <div id="google_translate_element" className="scale-75 md:scale-90 origin-right"></div>
+                </div>
                 {prs.length > 1 && (
                   <select
                     value={aP?.id || ""}
