@@ -197,7 +197,7 @@ const bootInterval = setInterval(() => {
       const handleGPS = () => { if (!navigator.geolocation) return alert("Geolocation not supported on this browser."); navigator.geolocation.getCurrentPosition( async (pos) => { const lat = pos.coords.latitude; const lon = pos.coords.longitude; const tz = calculateTimezone(lat, lon); let placeName = "GPS Location"; try { const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`); const d = await r.json(); placeName = d.address?.city || d.address?.town || d.address?.county || "Current Location"; } catch (e) {} setFormData((prev) => ({ ...prev, place: placeName, lat: lat.toFixed(4), lon: lon.toFixed(4), utcOffset: tz })); }, () => alert("GPS access denied.") ); };
 
       return (
-        <div className="min-h-screen w-full font-sans pb-12 bg-[#09090b] text-slate-200 relative">
+        <div className="min-h-screen w-full font-sans pb-12 bg-transparent text-slate-200 relative">
           <datalist id="gotras">{window.GOTRAS?.map((g) => (<option className="bg-[#09090b] text-white" key={g} value={g} />))}</datalist>
           <datalist id="jaatis">{window.JAATIS?.map((j) => (<option className="bg-[#09090b] text-white" key={g} value={j} />))}</datalist>
 
@@ -222,10 +222,7 @@ const bootInterval = setInterval(() => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex flex-col md:flex-row items-end md:items-center gap-1 md:gap-3 mr-2 md:mr-4">
-                  <span className="text-[10px] text-white/50 uppercase tracking-widest font-bold whitespace-nowrap">Please select Language:</span>
-                  <div id="google_translate_element" className="scale-75 md:scale-90 origin-right"></div>
-                </div>
+                
                 {prs.length > 1 && (
                   <select
                     value={aP?.id || ""}

@@ -129,51 +129,39 @@
       body { top: 0px !important; }
       .goog-te-gadget { color: transparent !important; }
       .goog-te-gadget span { display: none !important; }
-      .goog-te-gadget select {
+      .goog-te-gadget { font-size: 0px !important; color: transparent !important; display: flex; flex-direction: column; align-items: flex-end; }
+      .goog-te-combo { color-scheme: dark; 
         background-color: #09090b !important;
-        color: #818cf8 !important;
-        border: 1px solid #3730a3 !important;
-        padding: 4px 8px !important;
-        border-radius: 6px !important;
-        font-family: 'Sora', monospace !important;
-        font-size: 10px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #3f3f46 !important;
+        padding: 6px 12px 6px 28px !important;
+        border-radius: 8px !important;
+        font-family: 'Sora', sans-serif !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
         outline: none !important;
         cursor: pointer !important;
-        width: 120px !important;
+        width: 140px !important;
+        margin: 0 !important;
       }
-      .goog-te-gadget select:hover { border-color: #4f46e5 !important; }
+      .goog-te-combo:hover { border-color: #6366f1 !important; }
+      .goog-logo-link { display: none !important; }
+      .goog-te-gadget > span > a { display: none !important; }
+      .goog-te-gadget img { display: none !important; }
+      .goog-te-gadget > span { display: none !important; }
 
     </style>
 
-    <!-- Google Translate Script -->
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'en,ru,hi,ur,sa,es,fr,ar,bn,zh-CN',
-          layout: google.translate.TranslateElement.InlineLayout.SIMPLE
-        }, 'google_translate_element');
-      }
-    </script>
+    
     <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 <body class="bg-[#09090b] min-h-screen text-slate-200 selection:bg-indigo-500 selection:text-white font-sans">
-    <div class="bg-ambient">
-      <div class="bg-ambient-blob1"></div>
-      <div class="bg-ambient-blob2"></div>
-      <svg class="dynamic-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="50,5 95,95 5,95" fill="none" stroke="#4f46e5" stroke-width="2"/>
-        <circle cx="50" cy="50" r="20" fill="none" stroke="#ec4899" stroke-width="2"/>
-      </svg>
-      <svg class="dynamic-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#6366f1" stroke-width="1" stroke-dasharray="5,5"/>
-        <path d="M 50 10 L 90 50 L 50 90 L 10 50 Z" fill="none" stroke="#ec4899" stroke-width="2"/>
-      </svg>
-    </div>
+    
+      
 
     <!-- React Root Mount Point -->
+            
+    </div>
     <div id="root">
         <!-- Initial Bootloader (Replaced by React App on Successful Load) -->
         <div id="bootloader" class="min-h-screen flex items-center justify-center p-4">

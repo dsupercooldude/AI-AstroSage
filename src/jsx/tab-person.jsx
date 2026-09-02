@@ -105,6 +105,21 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
   };
   const timelineData = getTimelineData();
 
+    const affirmationsByMoon = {
+    "Aries": "I am a pioneer of my own destiny; my fiery spirit ignites new beginnings.",
+    "Taurus": "I am rooted in peace and abundance; my stability is my greatest strength.",
+    "Gemini": "My mind is a universe of possibilities; I adapt and thrive in every situation.",
+    "Cancer": "My intuition is my compass; I nurture myself and those around me with endless love.",
+    "Leo": "I radiate confidence and warmth; my inner light illuminates the world.",
+    "Virgo": "I find perfection in the present moment; my healing energy restores balance.",
+    "Libra": "I am a beacon of harmony; I attract beauty and fairness into my life.",
+    "Scorpio": "I am fiercely resilient; I embrace transformation and rise stronger from the ashes.",
+    "Sagittarius": "My spirit is boundless; I explore the universe with optimism and truth.",
+    "Capricorn": "I am the architect of my success; my discipline paves the road to greatness.",
+    "Aquarius": "I am a visionary soul; my unique brilliance inspires collective evolution.",
+    "Pisces": "My dreams are seeds of reality; I flow with the cosmic currents of compassion."
+  };
+
   return (
     <div className="space-y-6 pb-12 gl-fadein mt-4">
       <style>{`
@@ -139,6 +154,19 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <button onClick={() => onEdit(pr)} title="Edit Profile" className="w-10 h-10 rounded-xl bg-[#09090b] text-slate-300 flex items-center justify-center border border-[#27272a] hover:bg-[#27272a] transition shadow-lg">
             <i className="ph ph-pencil-simple text-lg"></i>
           </button>
+        </div>
+      </div>
+
+            {/* DAILY AFFIRMATION */}
+      <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-5 shadow-2xl flex items-center gap-4 relative z-20 transition hover:border-[#3f3f46]">
+        <div className="w-11 h-11 rounded-2xl border border-pink-500/30 flex items-center justify-center text-pink-400 bg-pink-500/10 shadow-lg shadow-pink-500/20 shrink-0">
+          <i className="ph ph-sparkle text-xl"></i>
+        </div>
+        <div>
+          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+             Daily Affirmation <span className="bg-[#09090b] px-1.5 py-0.5 rounded border border-[#27272a] text-[9px] text-pink-400">Moon in {ch.moonSign}</span>
+          </div>
+          <div className="text-sm md:text-base text-slate-200 font-serif italic tracking-tight">"{affirmationsByMoon[ch.moonSign] || 'I embrace the journey of my soul with grace and courage.'}"</div>
         </div>
       </div>
 

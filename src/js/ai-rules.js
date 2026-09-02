@@ -9,7 +9,7 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
   const failures = [];
 
   const callGemini = async (apiKey) => {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -123,10 +123,20 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
 
   
 const callPollinations = async () => {
-  const encP = encodeURIComponent(systemPrompt + "\n\n" + prompt);
-  const res = await fetch(`https://text.pollinations.ai/${encP}`);
+  const res = await fetch("https://text.pollinations.ai/openai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      model: "openai"
+    })
+  });
   if (!res.ok) throw new Error(`Pollinations HTTP ${res.status}`);
-  return await res.text();
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content;
 };
 
 const callHuggingFace = async (apiKey) => {
