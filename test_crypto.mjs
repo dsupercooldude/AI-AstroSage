@@ -1,4 +1,6 @@
+import { webcrypto as crypto } from 'node:crypto';
 
+const window = {};
 window.CryptoUtils = {
     b64E: s => btoa(encodeURIComponent(s).replace(/%([0-9A-F]{2})/g, (m, p) => String.fromCharCode('0x' + p))),
     b64D: s => decodeURIComponent(atob(s).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')),
@@ -13,27 +15,13 @@ window.CryptoUtils = {
             return r;
         } catch(e) { return b; }
     },
-
     initKeys: async () => {
         if (window.CryptoUtils.staticKeyPair) return window.CryptoUtils.staticKeyPair;
-        let privJwk = localStorage.getItem('gl_ecdh_priv');
-        let pubJwk = localStorage.getItem('gl_ecdh_pub');
-        
-        if (privJwk && pubJwk) {
-            const priv = await crypto.subtle.importKey("jwk", JSON.parse(privJwk), { name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey", "deriveBits"]);
-            const pub = await crypto.subtle.importKey("jwk", JSON.parse(pubJwk), { name: "ECDH", namedCurve: "P-256" }, true, []);
-            window.CryptoUtils.staticKeyPair = { publicKey: pub, privateKey: priv };
-        } else {
-            const keyPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey", "deriveBits"]);
-            const exportedPriv = await crypto.subtle.exportKey("jwk", keyPair.privateKey);
-            const exportedPub = await crypto.subtle.exportKey("jwk", keyPair.publicKey);
-            localStorage.setItem('gl_ecdh_priv', JSON.stringify(exportedPriv));
-            localStorage.setItem('gl_ecdh_pub', JSON.stringify(exportedPub));
-            window.CryptoUtils.staticKeyPair = keyPair;
-        }
+        // Mocking fresh generation for the test
+        const keyPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey", "deriveBits"]);
+        window.CryptoUtils.staticKeyPair = keyPair;
         return window.CryptoUtils.staticKeyPair;
     },
-
     encrypt: async (d) => {
         if (!d) return d;
         let s = typeof d === 'object' ? JSON.stringify(d) : String(d);
@@ -68,7 +56,6 @@ window.CryptoUtils = {
         const b64 = btoa(String.fromCharCode(...bundle));
         return "ECIES:" + b64;
     },
-
     decrypt: async (b) => {
         if (!b) return b;
         if (typeof b === 'string' && !b.startsWith("ECIES:")) {
@@ -105,16 +92,19 @@ window.CryptoUtils = {
             const decryptedStr = new TextDecoder().decode(decryptedBuffer);
             try { return JSON.parse(decryptedStr); } catch(e) { return decryptedStr; }
         } catch(e) {
-            console.error("Decryption failed", e); return "ECIES_ERROR:" + (e.message || e.toString());
+            console.error("Decryption failed", e);
+            return b;
         }
-    },
-
-    hashPassword: async (s) => {
-         const fb = (str) => { let h = 0; for(let i=0; i<str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0; return "h_" + Math.abs(h).toString(16); };
-         try {
-             if (!window.crypto || !window.crypto.subtle) return fb(s);
-             const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-             return Array.from(new Uint8Array(buf)).map(x=>x.toString(16).padStart(2,'0')).join('');
-         } catch (err) { return fb(s); }
-     }
+    }
 };
+
+async function test() {
+    const data = [{ id: "test", name: "Aarav Sharma" }];
+    console.log("Original:", JSON.stringify(data));
+    const enc = await window.CryptoUtils.encrypt(data);
+    console.log("Encrypted length:", enc.length);
+    const dec = await window.CryptoUtils.decrypt(enc);
+    console.log("Decrypted:", JSON.stringify(dec));
+}
+
+test();

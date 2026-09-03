@@ -491,6 +491,27 @@ export default function App() {
 
   const activeTheme = themeMap[activeTabId] || "from-black via-black to-black";
 
+  if (user && user.requiresPasswordChange) {
+    const ForcePasswordChange = (window as any).ForcePasswordChange;
+    return (
+      <div className="min-h-screen w-full font-sans pb-16 bg-transparent text-slate-200 selection:bg-indigo-500 selection:text-white relative">
+        <div className="fixed inset-0 -z-30 bg-black"></div>
+        {ForcePasswordChange && (
+          <ForcePasswordChange 
+            email={user.email} 
+            emailHash={user.emailHash} 
+            onComplete={() => {
+              setUser({...user, requiresPasswordChange: false});
+              const lS = JSON.parse(localStorage.getItem('gl_active_user') || '{}');
+              lS.requiresPasswordChange = false;
+              localStorage.setItem('gl_active_user', JSON.stringify(lS));
+            }} 
+          />
+        )}
+      </div>
+    );
+  }
+
   if (!user) {
     const AuthModal = (window as any).AuthModal;
     return (
@@ -662,6 +683,14 @@ export default function App() {
               className="p-2 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-slate-300 hover:text-white"
             >
               <Icon name="shield-check" size={16} />
+            </button>
+
+            <button
+              onClick={() => setAdminAuthOpen(true)}
+              title="Admin Console"
+              className="p-2 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-amber-400 hover:text-white"
+            >
+              <Icon name="shield-warning" size={16} />
             </button>
 
             {user && (
