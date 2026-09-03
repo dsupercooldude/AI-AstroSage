@@ -43,7 +43,7 @@ window.SetupModal = ({ onConfig }) => {
 
 window.AuthModal = ({ onLogin }) => {
   const { SageLogo, Icon, AppDB, CryptoUtils, PasskeyAuth } = window;
-  const [mode, setMode] = useState("login"); const [e, setE]=useState(""); const [p, setP]=useState(""); const [err, setErr]=useState(""); const [gp, setGp]=useState(""); const [mfaPin, setMfaPin] = useState(""); const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [mode, setMode] = useState("login"); const [e, setE]=useState(""); const [p, setP]=useState(""); const [err, setErr]=useState(""); const [gp, setGp]=useState(""); const [mfaPin, setMfaPin] = useState(""); const [passkeyBusy, setPasskeyBusy] = useState(false); const [showImport, setShowImport] = useState(false); const [importKeyStr, setImportKeyStr] = useState(""); const [confirmWipe, setConfirmWipe] = useState(false);
   
   const proceedToVault = async (normE, emailHash, reqChange, isMfaEnabled) => {
     const vaultFile = await AppDB.getFile(`gl_vault_${emailHash}.json`);
@@ -141,13 +141,51 @@ window.AuthModal = ({ onLogin }) => {
 
   if (mode === "mfa") return (
     <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bg-[#09090b] p-6 shadow-2xl border border-[#27272a] text-center"><Icon name="shield-check" size={48} className="mx-auto text-emerald-400 mb-3" /><h2 className="font-serif text-2xl mt-1 mb-2 text-emerald-200">2FA Protected</h2><p className="text-xs t60 mb-5">Enter your 6-digit Authenticator app PIN.</p>
-      <form onSubmit={handleMfaSubmit}>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err.startsWith("DECRYPTION_FAILED:") || err.startsWith("DEVICE_LOCKED:") ? (<div><p>{err.includes(':') ? err.split(':')[1] : err}</p><button type="button" onClick={async () => { if(confirm('This will PERMANENTLY ERASE your cloud vault and reset it for this device. Are you sure?')) { const emailHash = await AppDB.hashKey(e.trim().toLowerCase()); const vault = await AppDB.getFile(`gl_vault_${emailHash}.json`); vault.content = { profiles: [], settings: {} }; await AppDB.saveFile(`gl_vault_${emailHash}.json`, vault.content, vault.sha); alert('Vault wiped. Please sign in again.'); setErr(''); } }} className="mt-2 w-full py-1.5 bg-red-500 text-black font-bold rounded">Wipe & Reset Vault</button></div>) : err}</div>}<input required type="text" maxLength="6" value={mfaPin} onChange={ev=>setMfaPin(ev.target.value)} placeholder="000000" className="w-full text-center tracking-[0.5em] font-mono font-bold bg-black/40 border border-[#27272a] rounded-xl px-3 py-3 text-lg outline-none text-emerald-300 focus:border-emerald-400/50 mb-4"/><button type="submit" className="w-full bg-emerald-500 text-black font-semibold rounded-full py-3 hover:bg-emerald-400 transition">Unlock Vault</button><button type="button" onClick={()=>setMode("login")} className="mt-4 text-[10px] t50 hover:text-white">Cancel</button></form></div></div>
+      <form onSubmit={handleMfaSubmit}>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err.startsWith("DECRYPTION_FAILED:") || err.startsWith("DEVICE_LOCKED:") ? (<div><p className="mb-2 text-red-200">Vault locked to original browser. The encryption keys are missing on this device.</p>
+  {!showImport && !confirmWipe && (
+    <>
+      <button type="button" onClick={() => setShowImport(true)} className="w-full py-2 bg-blue-500 hover:bg-blue-400 transition text-white font-bold rounded mb-2">Import Keys from Old Browser</button>
+      <button type="button" onClick={() => setConfirmWipe(true)} className="w-full py-1.5 bg-red-900/50 hover:bg-red-900/80 transition text-red-300 border border-red-500/30 text-[10px] rounded">Delete Cloud Data & Start Fresh</button>
+    </>
+  )}
+  {showImport && (
+    <div className="mt-2 space-y-2 text-left bg-black/60 p-3 rounded border border-blue-500/30">
+      <label className="text-[10px] text-blue-300 font-bold block">Paste Exported Key String:</label>
+      <textarea value={importKeyStr} onChange={ev=>setImportKeyStr(ev.target.value)} className="w-full h-16 bg-[#09090b] border border-[#27272a] rounded p-2 text-[10px] font-mono text-slate-300 outline-none resize-none"></textarea>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setShowImport(false)} className="flex-1 py-1.5 bg-slate-800 text-white text-xs rounded">Cancel</button>
+        <button type="button" onClick={() => {
+           if(importKeyStr.trim()) {
+             const success = CryptoUtils.importKeys(importKeyStr.trim());
+             if(success) { setErr(''); setShowImport(false); setImportKeyStr(""); } else { setImportKeyStr("Invalid Key String"); }
+           }
+        }} className="flex-1 py-1.5 bg-blue-500 text-white font-bold text-xs rounded">Import</button>
+      </div>
+    </div>
+  )}
+  {confirmWipe && (
+    <div className="mt-2 space-y-2 bg-red-950/60 p-3 rounded border border-red-500/50 text-left">
+      <p className="text-[10px] text-red-300 font-bold leading-tight mb-2">PERMANENTLY ERASE your cloud vault and reset it for this device? You cannot undo this.</p>
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setConfirmWipe(false)} className="flex-1 py-1.5 bg-slate-800 text-white text-xs rounded">Cancel</button>
+        <button type="button" onClick={async () => {
+          setConfirmWipe(false);
+          const emailHash = await AppDB.hashKey(e.trim().toLowerCase());
+          const vault = await AppDB.getFile(`gl_vault_${emailHash}.json`);
+          vault.content = { profiles: [], settings: {} };
+          await AppDB.saveFile(`gl_vault_${emailHash}.json`, vault.content, vault.sha);
+          setErr('Vault wiped successfully. You can now sign in fresh.');
+        }} className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded">ERASE VAULT</button>
+      </div>
+    </div>
+  )}
+</div>) : err}</div>}<input required type="text" maxLength="6" value={mfaPin} onChange={ev=>setMfaPin(ev.target.value)} placeholder="000000" className="w-full text-center tracking-[0.5em] font-mono font-bold bg-black/40 border border-[#27272a] rounded-xl px-3 py-3 text-lg outline-none text-emerald-300 focus:border-emerald-400/50 mb-4"/><button type="submit" className="w-full bg-emerald-500 text-black font-semibold rounded-full py-3 hover:bg-emerald-400 transition">Unlock Vault</button><button type="button" onClick={()=>setMode("login")} className="mt-4 text-[10px] t50 hover:text-white">Cancel</button></form></div></div>
   );
   if (mode === "generated") return ( <div className="min-h-screen flex items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl border border-emerald-500/40 bg-[#09090b] p-6 text-center shadow-2xl"><h2 className="font-serif text-xl t100 mb-1 text-emerald-300">Secure Credentials</h2><p className="text-xs t75 mb-4">Auto-generated secure password:</p><div className="flex gap-2 items-center justify-center mb-3"><div className="flex-1 p-3 bg-black/40 rounded-xl font-mono text-emerald-300 border border-emerald-500/30 text-base select-all">{gp}</div></div><p className="text-[10px] t50">Save this temporary password.</p><button onClick={()=>setMode("login")} className="w-full rounded-full py-3 text-sm font-semibold bg-emerald-500 text-black mt-5">Proceed to Sign In</button></div></div> );
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gl-fadein"><div className="w-full max-w-sm rounded-3xl bg-[#09090b] p-6 shadow-2xl border border-[#27272a] relative">
-      <form onSubmit={handleSubmit}><SageLogo size={44}/><h2 className="text-center font-serif text-2xl mt-1 mb-4 text-amber-200">{mode==="signup"?"Create Account":mode==="reset"?"Reset Password":"Sign In"}</h2>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err.startsWith("DECRYPTION_FAILED:") || err.startsWith("DEVICE_LOCKED:") ? (<div><p>{err.includes(':') ? err.split(':')[1] : err}</p><button type="button" onClick={async () => { if(confirm('This will PERMANENTLY ERASE your cloud vault and reset it for this device. Are you sure?')) { const emailHash = await AppDB.hashKey(e.trim().toLowerCase()); const vault = await AppDB.getFile(`gl_vault_${emailHash}.json`); vault.content = { profiles: [], settings: {} }; await AppDB.saveFile(`gl_vault_${emailHash}.json`, vault.content, vault.sha); alert('Vault wiped. Please sign in again.'); setErr(''); } }} className="mt-2 w-full py-1.5 bg-red-500 text-black font-bold rounded">Wipe & Reset Vault</button></div>) : err}</div>}<div className="space-y-3"><div><label className="text-[10px] t40 uppercase font-mono">Email Address (optional for passkey)</label><input type="email" value={e} onChange={ev=>setE(ev.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>{mode==="login" && <div><label className="text-[10px] t40 uppercase font-mono">Password</label><input type="password" value={p} onChange={ev=>setP(ev.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>}</div><button type="submit" className="w-full bg-amber-400 text-black font-semibold rounded-full py-3 mt-5 hover:bg-amber-300 transition shadow-lg shadow-amber-400/20">{mode==="signup"?"Generate Credentials":mode==="reset"?"Reset Password":"Enter Vault"}</button>{mode==="login" && <button type="button" disabled={passkeyBusy} onClick={handlePasskeyLogin} className="w-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold rounded-full py-3 mt-2 hover:bg-emerald-500/25 transition"><Icon name="fingerprint" size={16} /> {passkeyBusy ? "Verifying Passkey..." : "Use Face ID / Passkey"}</button>}
+      <form onSubmit={handleSubmit}><SageLogo size={44}/><h2 className="text-center font-serif text-2xl mt-1 mb-4 text-amber-200">{mode==="signup"?"Create Account":mode==="reset"?"Reset Password":"Sign In"}</h2>{err && <div className="text-[10px] text-red-300 bg-red-900/30 p-2.5 mb-3 rounded-xl border border-red-500/20">{err.startsWith("DECRYPTION_FAILED:") || err.startsWith("DEVICE_LOCKED:") ? (<div><p className="mb-2 text-red-200">Vault locked to original browser. The encryption keys are missing on this device.</p><button type="button" onClick={() => { const keys = prompt("To migrate, open this app on your ORIGINAL browser, go to Settings -> Export Device Keys, and paste the code here:"); if(keys) { const success = CryptoUtils.importKeys(keys); if(success) { alert("Keys imported successfully! You can now log in."); setErr(''); } else { alert("Invalid key string."); } } }} className="w-full py-2 bg-blue-500 hover:bg-blue-400 transition text-white font-bold rounded mb-2">Import Keys from Old Browser</button><button type="button" onClick={async () => { if(confirm('This will PERMANENTLY ERASE your cloud vault and reset it for this device. Are you sure?')) { const emailHash = await AppDB.hashKey(e.trim().toLowerCase()); const vault = await AppDB.getFile(`gl_vault_${emailHash}.json`); vault.content = { profiles: [], settings: {} }; await AppDB.saveFile(`gl_vault_${emailHash}.json`, vault.content, vault.sha); alert('Vault wiped. Please sign in again.'); setErr(''); } }} className="w-full py-1.5 bg-red-900/50 hover:bg-red-900/80 transition text-red-300 border border-red-500/30 text-[10px] rounded">Delete Cloud Data & Start Fresh</button></div>) : err}</div>}<div className="space-y-3"><div><label className="text-[10px] t40 uppercase font-mono">Email Address (optional for passkey)</label><input type="email" value={e} onChange={ev=>setE(ev.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>{mode==="login" && <div><label className="text-[10px] t40 uppercase font-mono">Password</label><input type="password" value={p} onChange={ev=>setP(ev.target.value)} className="w-full bg-black/40 border border-[#27272a] rounded-xl px-3 py-2.5 text-sm outline-none text-white focus:border-amber-400/50"/></div>}</div><button type="submit" className="w-full bg-amber-400 text-black font-semibold rounded-full py-3 mt-5 hover:bg-amber-300 transition shadow-lg shadow-amber-400/20">{mode==="signup"?"Generate Credentials":mode==="reset"?"Reset Password":"Enter Vault"}</button>{mode==="login" && <button type="button" disabled={passkeyBusy} onClick={handlePasskeyLogin} className="w-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-semibold rounded-full py-3 mt-2 hover:bg-emerald-500/25 transition"><Icon name="fingerprint" size={16} /> {passkeyBusy ? "Verifying Passkey..." : "Use Face ID / Passkey"}</button>}
 <div className="flex justify-between items-center mt-4 flex-wrap gap-2">
   <button type="button" onClick={()=>{setMode(mode==="login"?"signup":"login"); setErr("");}} className="text-[11px] t60 hover:text-white">{mode==="login"?"New User? Quick Sign Up":"Existing User? Sign In"}</button>
   {mode === "login" && <button type="button" onClick={()=>{setMode("reset"); setErr("");}} className="text-[11px] text-amber-400 hover:text-amber-300">Forgot Password?</button>}
@@ -216,7 +254,7 @@ window.AdminConsoleModal = ({ onClose, onResetDb }) => {
 
 window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }) => {
   const { Icon, AppDB, CryptoUtils, PasskeyAuth } = window;
-  const [mfaSetup, setMfaSetup] = useState(null);
+  const [mfaSetup, setMfaSetup] = useState(null); const [exportKeyStr, setExportKeyStr] = useState("");
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [passkeyReady, setPasskeyReady] = useState(!!PasskeyAuth?.getRecord(u.emailHash));
   const [localSet, setLocalSet] = useState(settings || { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} });
@@ -316,6 +354,33 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
             <Icon name="fingerprint" size={18} /> {passkeyBusy ? "Registering Device..." : passkeyReady ? "Passkey Enabled on This Device" : "Enable Face ID / Passkey"}
           </button>
           {!PasskeyAuth?.supported() && <div className="text-[10px] t50 mt-1">This browser does not provide WebAuthn passkeys.</div>}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-[#27272a] mb-5">
+          <label className="text-[10px] font-mono uppercase text-blue-400 mb-1.5 block font-bold">Device Encryption Keys</label>
+          <p className="text-[10px] text-slate-400 mb-3 leading-relaxed">Your cloud vault is encrypted end-to-end using local ECDH keys. To access this vault from a new browser or device, you must export your keys from this device and import them on the new one.</p>
+          <button type="button" onClick={() => {
+            const keys = window.CryptoUtils.exportKeys();
+            if(keys) {
+              setExportKeyStr(keys);
+            } else {
+              setExportKeyStr("NOT_FOUND");
+            }
+          }} className="w-full py-2.5 bg-blue-500/20 text-blue-300 font-semibold rounded-xl text-xs hover:bg-blue-500/30 transition border border-blue-500/30 flex items-center justify-center gap-2">
+            <Icon name="key" size={16} /> Export Device Keys
+          </button>
+          
+          {exportKeyStr === "NOT_FOUND" && (
+            <div className="mt-2 text-xs text-red-400 p-2 bg-red-900/20 border border-red-500/30 rounded text-center">Keys not found on this device.</div>
+          )}
+          
+          {exportKeyStr && exportKeyStr !== "NOT_FOUND" && (
+            <div className="mt-3 p-3 bg-black/60 border border-blue-500/40 rounded-xl space-y-2">
+              <span className="text-[10px] text-blue-300 block font-bold">Copy this entire string:</span>
+              <textarea readOnly value={exportKeyStr} className="w-full h-24 bg-[#09090b] border border-[#27272a] rounded-lg p-2 text-[10px] font-mono text-slate-300 outline-none resize-none break-all" onFocus={(e) => e.target.select()}></textarea>
+              <button type="button" onClick={(e) => { navigator.clipboard.writeText(exportKeyStr).catch(()=>console.log("Clipboard blocked")); e.target.innerText = "Copied!"; setTimeout(()=>e.target.innerText="Copy to Clipboard", 2000); }} className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">Copy to Clipboard</button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
