@@ -1,5 +1,5 @@
 
-window.TarotTab = ({ settings, emHash }) => {
+window.TarotTab = ({ settings, emHash, pr }) => {
   const { useState, useEffect } = window.React;
   const { Icon } = window;
   const [deckMajor, setDeckMajor] = useState([]);
@@ -66,15 +66,12 @@ window.TarotTab = ({ settings, emHash }) => {
       setAiProvider(provider);
       
       try {
-        const hFile = await window.AppDB.getFile(`gl_tarot_${emHash}.json`);
-        let hist = [];
-        if (hFile.content.history) {
-          const str = typeof hFile.content.history === "string" ? await window.CryptoUtils.decrypt(hFile.content.history) : hFile.content.history;
-          hist = typeof str === "string" ? JSON.parse(str) : str || [];
-        }
-        hist.push({ ts: Date.now(), question: q, reading: ans, cards: [selectedMajor, selectedMinor], profileId: window.activeProfileId || "" });
-        hFile.content.history = await window.CryptoUtils.encrypt(hist);
-        await window.AppDB.saveFile(`gl_tarot_${emHash}.json`, hFile.content, hFile.sha);
+        await window.VaultHistoryService.saveLog("tarot", emHash, pr?.id || "default", {
+           question: q,
+           reading: ans,
+           cards: [selectedMajor, selectedMinor]
+        });
+        window.dispatchEvent(new CustomEvent('refreshVaultHistory', {detail: {module: 'tarot'}}));
       } catch(e) {}
     } catch (e) {
       setReading("Connection to the Oracle failed.");
@@ -195,6 +192,7 @@ window.TarotTab = ({ settings, emHash }) => {
           </div>
         )}
       </div>
+      <window.VaultHistoryDisplay module="tarot" emHash={emHash} profileId={pr?.id || "default"} />
     </div>
   );
 };

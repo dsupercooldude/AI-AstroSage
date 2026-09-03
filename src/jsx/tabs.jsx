@@ -97,7 +97,7 @@ window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs,
       {tb === "panchang" && <PanchangTab d={date} setDate={setDate} p={pr} utc={pr?.utcOffset || 5.5} settings={settings} />}
       {tb === "union" && <CompatTab prs={prs} chs={chs} settings={settings} date={date} />}
       {tb === "palmistry" && <PalmistryTab pr={pr} settings={settings} emHash={u?.emailHash} />}
-      {tb === "tarot" && <TarotTab settings={settings} emHash={u?.emailHash} />}
+      {tb === "tarot" && <TarotTab settings={settings} emHash={u?.emailHash} pr={pr} />}
       {tb === "week" && <WeekTab pr={pr} ch={ch} />}
       {tb === "month" && <MonthTab pr={pr} ch={ch} />}
       {tb === "ask" && <AskTab em={u.email} emHash={u.emailHash} set={settings} pr={pr} ch={ch} date={date} />}

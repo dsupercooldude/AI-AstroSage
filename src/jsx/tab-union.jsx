@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
-window.TabUnion = ({ prs, chs, settings }) => {
+window.CompatTab = ({ prs, chs, settings }) => {
   const [pairIds, setPairIds] = useState(["", ""]);
   const [relation, setRelation] = useState("Spouse");
   const [aiAnalysis, setAiAnalysis] = useState("");
@@ -189,6 +189,7 @@ window.TabUnion = ({ prs, chs, settings }) => {
           </div>
         ))}
       </div>
+      <window.RelationshipGraph prs={prs} chs={chs} />
     </div>
   );
 };

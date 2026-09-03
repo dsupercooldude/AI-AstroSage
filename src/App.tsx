@@ -4,6 +4,8 @@ import './init';
 // Import all sub-components and tabs so they are bundled natively by Vite
 import './jsx/components.jsx';
 import './jsx/modals.jsx';
+import './jsx/vault-history.jsx';
+import './jsx/relationship-graph.jsx';
 import './jsx/charts.jsx';
 import './jsx/pdf-report.jsx';
 import './jsx/tab-person.jsx';
@@ -249,6 +251,7 @@ export default function App() {
   // PDF Report Handler
   useEffect(() => {
     const handlePdf = async () => {
+      window.dispatchEvent(new Event("refreshPdfData"));
       const el = document.getElementById('pdf-render-target');
       if (!el) return;
 
@@ -265,7 +268,7 @@ export default function App() {
       `;
       document.body.appendChild(loader);
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       try {
         const PDFValidator = (window as any).PDFValidator;

@@ -1,5 +1,4 @@
 var { useRef, useState, useEffect } = window.React;
-
 window.PalmistryTab = ({ pr, settings, emHash }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -17,7 +16,7 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     let isMounted = true;
     const loadHistory = async () => {
       try {
-        const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+        const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`);
         const decH = typeof hFile.content.h === "string" ? await window.CryptoUtils.decrypt(hFile.content.h) : hFile.content.h || [];
         if (isMounted && decH && decH.length > 0) setChat(decH);
       } catch (e) {}
@@ -25,17 +24,14 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     if (emHash) loadHistory();
     return () => { isMounted = false; };
   }, [emHash]);
-
   const saveHistory = async (newChat) => {
     try {
-      const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}.json`);
+      const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`);
       hFile.content.h = await window.CryptoUtils.encrypt(newChat);
-      await window.AppDB.saveFile(`gl_palmistry_${emHash}.json`, hFile.content, hFile.sha);
+      await window.AppDB.saveFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`, hFile.content, hFile.sha);
     } catch (e) {}
   };
-
   const [streaming, setStreaming] = useState(false);
-
   useEffect(() => {
     // Try to load cached palm capture (valid for 7 days)
     try {
@@ -51,14 +47,12 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
         }
       }
     } catch(e) {}
-
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
-
   
   const stopCameraStream = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -68,13 +62,11 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     setStreaming(false);
     setCameraReady(false);
   };
-
   const requestCamera = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setAnalysis('Camera access is not available in this browser. The hand-only analysis can still proceed by asking a guided palmistry question without a live capture.');
       return;
     }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -95,7 +87,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       setAnalysis('Camera permission was blocked. The app stays privacy-safe and will not capture or retain a face image. You can continue with a safe hand-only prompt instead.');
     }
   };
-
   
   const askPalmistry = async () => {
     if (!question.trim()) return;
@@ -126,7 +117,12 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
         nc[nc.length - 1].provider = provider;
         nc[nc.length - 1].tokens = tokens;
         nc[nc.length - 1].confidence = Math.floor(Math.random() * 10) + 85;
-        saveHistory(nc);
+        
+        window.VaultHistoryService.saveLog("palmistry", emHash, pr?.id || "default", {
+           question: userQ,
+           analysis: ans,
+           provider: provider
+        }).then(() => window.dispatchEvent(new CustomEvent('refreshVaultHistory', {detail: {module: 'palmistry'}})));
         return nc;
       });
     } catch (e) {
@@ -137,7 +133,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       });
     }
   };
-
   const cropHandOnly = (video) => {
     const w = video.videoWidth || 640;
     const h = video.videoHeight || 480;
@@ -145,7 +140,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     const cropY = Math.floor(h * 0.28);
     const cropW = Math.floor(w * 0.64);
     const cropH = Math.floor(h * 0.62);
-
     const canvas = canvasRef.current;
     canvas.width = cropW;
     canvas.height = cropH;
@@ -154,16 +148,13 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
     return canvas.toDataURL('image/jpeg', 0.85);
   };
-
   const captureFrame = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-
     const dataUrl = cropHandOnly(video);
     setCapturedImage(dataUrl);
     stopCameraStream();
-
     const styleGuess = ['Earth Hand', 'Air Hand', 'Water Hand', 'Fire Hand'][Math.floor(Math.random() * 4)];
     const styleText = {
       'Earth Hand': 'Your palm shape suggests grounded practicality, durable work ethics, and a steady path through long-term effort.',
@@ -177,7 +168,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       'Water Hand': 'Your defined heart line indicates emotional depth.',
       'Fire Hand': 'Your distinct fate line shows a clear, active path forward.'
     };
-
     setHandStyle(styleGuess);
     const baseText = `${styleText[styleGuess]} ${lineText[styleGuess]}`;
     const fullAnalysis = `${baseText} For ${pr?.name || 'this native'}, the reading remains practical: build on your stable strengths, work on the softer or delayed areas, and choose action at the right moment instead of forcing it.`;
@@ -192,23 +182,18 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
             timestamp: Date.now()
         }));
         // Also save for PDF
-        window.AppDB.getFile(`gl_palmistry_analysis_${emHash}.json`).then(async (f) => {
-           let arr = [];
-           if (f.content.h) {
-              arr = typeof f.content.h === "string" ? await window.CryptoUtils.decrypt(f.content.h) : f.content.h;
-           }
-           arr.push({ ts: Date.now(), style: styleGuess, analysis: fullAnalysis, profileId: pr?.id });
-           f.content.h = await window.CryptoUtils.encrypt(arr);
-           await window.AppDB.saveFile(`gl_palmistry_analysis_${emHash}.json`, f.content, f.sha);
-        });
+        
+        window.VaultHistoryService.saveLog("palmistry", emHash, pr?.id || "default", {
+           style: styleGuess,
+           analysis: fullAnalysis,
+           question: "Hand Capture Analysis"
+        }).then(() => window.dispatchEvent(new CustomEvent('refreshVaultHistory', {detail: {module: 'palmistry'}})));
     } catch(e) {}
-
     setChat((prev) => [
       ...prev,
       { role: 'assistant', text: `Hand-only capture suggests a ${styleGuess}. ${baseText}` }
     ]);
   };
-
     return (
     <div className="max-w-6xl mx-auto space-y-6 gl-fadein pb-20">
       
@@ -237,7 +222,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
            )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl flex flex-col">
           <div className="flex justify-between items-center mb-3">
@@ -255,9 +239,7 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
               </div>
             )}
           </div>
-
           <canvas ref={canvasRef} className="hidden" />
-
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={captureFrame} className="px-3 py-2 rounded-xl bg-violet-500 text-black font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Capture Hand</button>
             <button onClick={stopCameraStream} className="px-3 py-2 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 font-bold text-[10px] uppercase tracking-[0.2em] font-mono">Stop Camera</button>
@@ -266,10 +248,8 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
             <button onClick={() => setQuestion('What does my head line say about my career direction?')} className="px-3 py-2 rounded-xl border border-[#27272a] bg-white/5 text-white/75 text-[10px] uppercase tracking-[0.2em] font-mono">Head Line</button>
           </div>
         </div>
-
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl">
           <div className="flex justify-between items-center mb-3"><h3 className="font-serif text-lg text-violet-200">Palm Interpretation</h3><window.SectionConfidence score={75} type="ai" label="Vision AI" /></div>
-
           <div className="rounded-2xl border border-violet-500/20 bg-black/30 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-violet-300">Hand Style</span>
@@ -279,7 +259,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
               {analysis || 'Capture a palm-only image to receive a structured interpretation of your hand type, primary lines, and practical life guidance.'}
             </div>
           </div>
-
           {capturedImage && (
             <div className="mt-4">
               <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-violet-300 mb-2">Captured Hand Region</div>
@@ -288,7 +267,6 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
           )}
         </div>
       </div>
-
       <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 shadow-xl">
         <h3 className="flex justify-between items-center w-full font-serif text-lg text-violet-200 mb-3">Ask the palmistry guide <window.SectionConfidence score={85} type="ai" label="AI Palmistry Engine" /></h3>
         <div className="flex gap-2">
@@ -316,7 +294,7 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
           ))}
         </div>
       </div>
-
+      <window.VaultHistoryDisplay module="palmistry" emHash={emHash} profileId={pr?.id || "default"} />
     </div>
   );
 };

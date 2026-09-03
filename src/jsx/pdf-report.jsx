@@ -11,35 +11,26 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
     const fetchData = async () => {
       if (!emHash || !profile) return;
       try {
-        const palmFile = await window.AppDB.getFile(`gl_palmistry_analysis_${emHash}.json`);
-        let ph = [];
-        try {
-           const pstr = typeof palmFile.content.history === "string" ? await window.CryptoUtils.decrypt(palmFile.content.history) : palmFile.content.history;
-           ph = typeof pstr === "string" ? JSON.parse(pstr) : pstr || [];
-        } catch(e){}
-        setPalmistryHistory(ph.filter(h => h.profileId === profile.id));
+        
+        const ph = await window.VaultHistoryService.getLogs("palmistry", emHash, profile.id);
+        setPalmistryHistory(ph);
 
-        const tarotFile = await window.AppDB.getFile(`gl_tarot_${emHash}.json`);
-        let th = [];
-        try {
-           const tstr = typeof tarotFile.content.history === "string" ? await window.CryptoUtils.decrypt(tarotFile.content.history) : tarotFile.content.history;
-           th = typeof tstr === "string" ? JSON.parse(tstr) : tstr || [];
-        } catch(e){}
-        setTarotHistory(th.filter(h => h.profileId === profile.id));
 
-        const chatFile = await window.AppDB.getFile(`gl_chat_${emHash}.json`);
-        let chatHist = [];
+        
+        const th = await window.VaultHistoryService.getLogs("tarot", emHash, profile.id);
+        setTarotHistory(th);
+
+
+        
         try {
-           const cstr = typeof chatFile.content.history === "string" ? await window.CryptoUtils.decrypt(chatFile.content.history) : chatFile.content.history;
-           chatHist = typeof cstr === "string" ? JSON.parse(cstr) : cstr || [];
-        } catch(e){}
-        const thisProfileChat = chatHist.filter(m => !m.profileId || m.profileId === profile.id);
-        if (thisProfileChat.length > 0 && window.generateProfileSummary) {
-           const summary = window.generateProfileSummary(profile, thisProfileChat);
-           setAskSummary(summary);
-        } else {
+           const sumFile = await window.AppDB.getFile(`gl_profile_summary_${emHash}_${profile.id}.json`);
+           const sstr = typeof sumFile.content.summary === "string" ? await window.CryptoUtils.decrypt(sumFile.content.summary) : sumFile.content.summary;
+           if (sstr) setAskSummary(sstr);
+           else setAskSummary("");
+        } catch(e){
            setAskSummary("");
         }
+
       } catch (err) {
         console.error("GhostPDFReport data load err", err);
       }
@@ -627,9 +618,9 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
       {palmistryHistory.length > 0 && (() => {
           const valid = palmistryHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
           if (valid.length > 0) {
-            const latest = valid[valid.length - 1];
-            return (
-              <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
+            const recent = valid.slice().reverse().slice(0, 3);
+            return recent.map((latest, index) => (
+              <div key={index} className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
                 <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Hand Palmistry Analysis</h3>
                 <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
                   <div className="flex justify-between items-center mb-4">
@@ -637,28 +628,30 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                     <div className="text-white/80 font-mono text-sm">{new Date(latest.ts).toLocaleDateString()}</div>
                   </div>
                   <div className="text-lg font-bold text-amber-200 mb-4">{latest.style}</div>
+                  {latest.summary && (
+                     <div className="text-emerald-400 font-bold mb-2">AI Summary: {latest.summary}</div>
+                  )}
                   <div className="text-white/80 font-mono text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-[#27272a]">
-                    {latest.analysis}
+                    {latest.reading || latest.analysis || latest.text}
                   </div>
                 </div>
                 <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
                   Palmistry readings from the last 30 days: {valid.length} capture(s)
                 </div>
               </div>
-            );
+            ));
           }
           return null;
       })()}
-
       {/* ========================================== */}
       {/* PAGE 15: TAROT HISTORY (IF AVAILABLE)      */}
       {/* ========================================== */}
       {tarotHistory.length > 0 && (() => {
           const valid = tarotHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
           if (valid.length > 0) {
-            const latest = valid[valid.length - 1];
-            return (
-              <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
+            const recent = valid.slice().reverse().slice(0, 3);
+            return recent.map((latest, index) => (
+              <div key={index} className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
                 <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Tarot Reading</h3>
                 <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
                   <div className="flex justify-between items-center mb-4">
@@ -672,19 +665,21 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                         </div>
                      ))}
                   </div>
+                  {latest.summary && (
+                     <div className="text-emerald-400 font-bold mb-2">AI Summary: {latest.summary}</div>
+                  )}
                   <div className="text-white/80 font-mono text-sm leading-relaxed bg-black/30 p-4 rounded-lg border border-[#27272a]">
-                    {latest.analysis}
+                    {latest.reading || latest.analysis || latest.text}
                   </div>
                 </div>
                 <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
                   Tarot readings from the last 30 days: {valid.length} reading(s)
                 </div>
               </div>
-            );
+            ));
           }
           return null;
       })()}
-
       {/* ========================================== */}
       {/* PAGE 16: AI SAGE PROFILE SUMMARY           */}
       {/* ========================================== */}
