@@ -423,7 +423,7 @@ window.calculateBaladiAvastha = (degrees, placements) => {
 // 5. ASHTAKOOT 36-GUNA MATCHING ENGINE
 // ══════════════════════════════════════════════════════════════════════════════
 
-window.calculateAshtakoot = (ch1, ch2) => {
+window.calculateAshtakoot = (ch1, ch2, relation = "Spouse") => {
   if (!ch1 || !ch2) return { score: 18, details: {} };
   const compareIndex = (a, b) => {
     const aIdx = window.NAKSHATRAS.indexOf(a.nak);

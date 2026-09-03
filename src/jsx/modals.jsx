@@ -378,7 +378,7 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
             <div className="mt-3 p-3 bg-black/60 border border-blue-500/40 rounded-xl space-y-2">
               <span className="text-[10px] text-blue-300 block font-bold">Copy this entire string:</span>
               <textarea readOnly value={exportKeyStr} className="w-full h-24 bg-[#09090b] border border-[#27272a] rounded-lg p-2 text-[10px] font-mono text-slate-300 outline-none resize-none break-all" onFocus={(e) => e.target.select()}></textarea>
-              <button type="button" onClick={(e) => { navigator.clipboard.writeText(exportKeyStr).catch(()=>console.log("Clipboard blocked")); e.target.innerText = "Copied!"; setTimeout(()=>e.target.innerText="Copy to Clipboard", 2000); }} className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">Copy to Clipboard</button>
+              <button type="button" onClick={(e) => { if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(exportKeyStr).catch(()=>console.log("Clipboard blocked")); } else { console.log("Clipboard API not available"); } e.target.innerText = "Copied!"; setTimeout(()=>e.target.innerText="Copy to Clipboard", 2000); }} className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition">Copy to Clipboard</button>
             </div>
           )}
         </div>

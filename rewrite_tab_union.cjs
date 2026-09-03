@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const code = `
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -130,8 +132,8 @@ window.TabUnion = ({ prs, chs, settings }) => {
                 setLoadingAi(true);
                 try {
                     const ashtakoot = window.calculateAshtakoot(c1, c2, relation);
-                    const detailsStr = Object.entries(ashtakoot.details).map(([k, v]) => `${k}: ${v}/${detailMap[k]?.max}`).join(', ');
-                    const prompt = `Analyze the ${relation} compatibility between ${p1.name} (Lagna: ${c1.d1.lagna}, Moon: ${c1.moonSign}, Nakshatra: ${c1.nak}) and ${p2.name} (Lagna: ${c2.d1.lagna}, Moon: ${c2.moonSign}, Nakshatra: ${c2.nak}). Their total Ashtakoot score is ${score}/36. Breakdown: ${detailsStr}. Provide a deep, insightful Vedic astrological relationship analysis outlining their core dynamics, strengths, and potential karmic challenges specifically tailored for a ${relation} relationship.`;
+                    const detailsStr = Object.entries(ashtakoot.details).map(([k, v]) => \`\${k}: \${v}/\${detailMap[k]?.max}\`).join(', ');
+                    const prompt = \`Analyze the \${relation} compatibility between \${p1.name} (Lagna: \${c1.d1.lagna}, Moon: \${c1.moonSign}, Nakshatra: \${c1.nak}) and \${p2.name} (Lagna: \${c2.d1.lagna}, Moon: \${c2.moonSign}, Nakshatra: \${c2.nak}). Their total Ashtakoot score is \${score}/36. Breakdown: \${detailsStr}. Provide a deep, insightful Vedic astrological relationship analysis outlining their core dynamics, strengths, and potential karmic challenges specifically tailored for a \${relation} relationship.\`;
                     
                     let ans = "";
                     if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
@@ -183,7 +185,7 @@ window.TabUnion = ({ prs, chs, settings }) => {
               <div className="font-bold font-mono text-sm text-white">{Number(value).toFixed(1)} / {detailMap[key]?.max ?? 1}</div>
             </div>
             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-[#27272a]">
-              <div className="h-full rounded-full bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300" style={{ width: `${Math.min(100, (Number(value) / (detailMap[key]?.max || 1)) * 100)}%` }}></div>
+              <div className="h-full rounded-full bg-gradient-to-r from-pink-400 via-rose-400 to-amber-300" style={{ width: \`\${Math.min(100, (Number(value) / (detailMap[key]?.max || 1)) * 100)}%\` }}></div>
             </div>
             <p className="text-[10px] t60 mt-2 leading-relaxed font-mono">{detailMap[key]?.meaning || "This factor contributes to the overall match and is reviewed as a part of the overall compatibility profile."}</p>
           </div>
@@ -192,3 +194,6 @@ window.TabUnion = ({ prs, chs, settings }) => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/jsx/tab-union.jsx', code);
