@@ -19,6 +19,7 @@ import './jsx/tab-week.jsx';
 import './jsx/tab-month.jsx';
 import './jsx/tabs.jsx';
 import { AmbientBackground } from './jsx/ambient';
+import { PWAInstallButton } from './jsx/PWAInstallButton';
 
 // Default seed profiles so the application is immediately interactive and functional
 const SEED_PROFILES = [
@@ -659,6 +660,7 @@ export default function App() {
 
           
           <div className="flex items-center gap-2 flex-wrap">
+            <PWAInstallButton />
             <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] rounded-xl px-2 py-1 relative">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" className="text-slate-400 absolute left-2 pointer-events-none"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM41.37,136H94.12a321.43,321.43,0,0,0,4.8,56.28A88.13,88.13,0,0,1,41.37,136ZM128,215.89a263.26,263.26,0,0,1-12.87-23.61c-3.13-6.62-5.75-13.88-7.81-20.28h41.36c-2.06,6.4-4.68,13.66-7.81,20.28A263.26,263.26,0,0,1,128,215.89ZM101.44,152A305.21,305.21,0,0,1,96.2,128a305.21,305.21,0,0,1,5.24-24h53.12a305.21,305.21,0,0,1,5.24,24,305.21,305.21,0,0,1-5.24,24Zm55.64,40.28a321.43,321.43,0,0,0,4.8-56.28h52.75A88.13,88.13,0,0,1,157.08,192.28ZM214.63,120H161.88a321.43,321.43,0,0,0-4.8-56.28A88.13,88.13,0,0,1,214.63,120ZM98.92,63.72a321.43,321.43,0,0,0-4.8,56.28H41.37A88.13,88.13,0,0,1,98.92,63.72ZM128,40.11a263.26,263.26,0,0,1,12.87,23.61c3.13,6.62,5.75,13.88,7.81,20.28H115.32c2.06-6.4,4.68-13.66,7.81-20.28A263.26,263.26,0,0,1,128,40.11Z"></path></svg>
               <GoogleTranslate />
