@@ -271,15 +271,11 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
                     let palmHist = [];
                     let tarotHist = [];
                     try {
-                       const pFile = await window.AppDB.getFile(`gl_palmistry_analysis_${emHash}_${pr?.id || "default"}.json`);
-                       const pstr = typeof pFile.content.h === "string" ? await window.CryptoUtils.decrypt(pFile.content.h) : pFile.content.h;
-                       palmHist = typeof pstr === "string" ? JSON.parse(pstr) : pstr || [];
-                    } catch(e){}
+      palmHist = await window.VaultHistoryService.getLogs("palmistry", emHash, pr?.id || "default");
+    } catch(e){}
                     try {
-                       const tFile = await window.AppDB.getFile(`gl_tarot_${emHash}_${pr?.id || "default"}.json`);
-                       const tstr = typeof tFile.content.history === "string" ? await window.CryptoUtils.decrypt(tFile.content.history) : tFile.content.history;
-                       tarotHist = typeof tstr === "string" ? JSON.parse(tstr) : tstr || [];
-                    } catch(e){}
+      tarotHist = await window.VaultHistoryService.getLogs("tarot", emHash, pr?.id || "default");
+    } catch(e){}
 
                     if (profileChats.length === 0 && palmHist.length === 0 && tarotHist.length === 0) {
                       setSummary("No questions or readings have been recorded for this profile yet. Use the Sage Chat, Palmistry, or Tarot to build history.");

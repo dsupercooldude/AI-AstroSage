@@ -177,7 +177,7 @@ const callHuggingFace = async (apiKey) => {
         const txt = await target.fn(target.key);
         if (txt) {
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = (typeof target !== "undefined" && target) ? target.id : ((typeof prov !== "undefined" && prov) ? prov.id : "ai");
+          window.lastAIProvider = prov ? prov.id : "ai";
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: target.id, tokens } }));
           window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: target.id, tokens } }));
           return { text: txt, provider: target.id, tokens };
@@ -200,11 +200,11 @@ const callHuggingFace = async (apiKey) => {
       try {
         const txt = await prov.fn(prov.key);
         if (txt) {
-          try { localStorage.setItem(cursorKey, String((providers.findIndex((item) => item.id === prov.id) + 1) % providers.length)); } catch (e) {}
+          try { localStorage.setItem(cursorKey, String((availableProviders.findIndex((item) => item.id === prov.id) + 1) % availableProviders.length)); } catch (e) {}
           window.lastAIProviderErrors = failures;
           
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = (typeof target !== "undefined" && target) ? target.id : ((typeof prov !== "undefined" && prov) ? prov.id : "ai");
+          window.lastAIProvider = prov ? prov.id : "ai";
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: prov.id, tokens } }));
           window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: prov.id, tokens } }));
           return { text: txt, provider: prov.id, tokens };

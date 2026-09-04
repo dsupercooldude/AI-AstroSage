@@ -538,7 +538,7 @@ export default function App() {
     const AuthModal = (window as any).AuthModal;
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center font-sans bg-black text-slate-200 relative p-6">
-        <div className="fixed inset-0 -z-30 bg-[#09090b]"></div>
+        <div className="fixed inset-0 -z-30 bg-black"></div>
         <div className="fixed inset-0 -z-20 bg-[url('https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2094&auto=format&fit=crop')] bg-cover bg-center opacity-10"></div>
         
         <div className="text-center bg-black/60 backdrop-blur-xl p-10 rounded-3xl border border-[#27272a] shadow-2xl max-w-lg w-full z-10">
@@ -581,8 +581,7 @@ export default function App() {
       {Object.entries(bgImages).map(([key, url]) => (
         <div 
           key={key}
-          className={`fixed inset-0 -z-20 transition-opacity duration-1000 bg-cover bg-center bg-no-repeat ${activeTabId === key ? 'opacity-40' : 'opacity-0'}`}
-          style={{ backgroundImage: `url(${url})` }}
+          className={`fixed inset-0 -z-20 transition-opacity duration-1000 bg-cover bg-center bg-no-repeat ${activeTabId === key ? 'opacity-40' : 'opacity-0'}`} style={{ backgroundImage: `url(${url})` }}
         ></div>
       ))}
       <div className={`fixed inset-0 -z-10 bg-gradient-to-br transition-colors duration-1000 ${activeTheme} opacity-90`}></div>

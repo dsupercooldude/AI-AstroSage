@@ -472,10 +472,34 @@ window.calculateAshtakoot = (ch1, ch2, relation = "Spouse") => {
   const n1 = window.NAKSHATRA_NADIS[nak1], n2 = window.NAKSHATRA_NADIS[nak2];
   const nadi = n1 !== n2 ? 8 : 0;
 
-  const total = varna + vashya + tara + yoni + maitri + gana + bhakoot + nadi;
+  let adj = { Varna: varna, Vashya: vashya, Tara: tara, Yoni: yoni, Maitri: maitri, Gana: gana, Bhakoot: bhakoot, Nadi: nadi };
+  let maxScore = 36;
+  
+  // Non-romantic overrides
+  if (!["Spouse", "Girlfriend"].includes(relation)) {
+      // For family, friends, and business, physical chemistry (Yoni) and genetics (Nadi) are irrelevant.
+      // We scale up Maitri (friendship), Gana (temperament), and Bhakoot (direction).
+      adj.Yoni = 0;
+      adj.Nadi = 0;
+      adj.Vashya = vashya; // Influence is still relevant
+      adj.Maitri = (maitri / 5) * 10; // Scale to 10
+      adj.Gana = (gana / 6) * 10; // Scale to 10
+      adj.Bhakoot = (bhakoot / 7) * 10; // Scale to 10
+      // Max score remains 1 + 2 + 3 + 0 + 10 + 10 + 10 + 0 = 36.
+  }
+  
+  if (relation === "Family") {
+      adj.Maitri = (maitri / 5) * 12;
+      adj.Bhakoot = (bhakoot / 7) * 12;
+      adj.Tara = (tara / 3) * 6;
+      adj.Vashya = (vashya / 2) * 3;
+      adj.Gana = (gana / 6) * 3;
+  }
+  
+  const total = adj.Varna + adj.Vashya + adj.Tara + adj.Yoni + adj.Maitri + adj.Gana + adj.Bhakoot + adj.Nadi;
   return {
-    score: total,
-    details: { Varna: varna, Vashya: vashya, Tara: tara, Yoni: yoni, Maitri: maitri, Gana: gana, Bhakoot: bhakoot, Nadi: nadi }
+    score: Math.min(36, total), // Cap at 36 just in case
+    details: adj
   };
 };
 
@@ -597,6 +621,9 @@ window.computeKundli = (profile, dateObj = null) => {
   return {
     d1: d1Chart,
     d9: genC(9),
+    d10: genC(10),
+    d7: genC(7),
+    d5: genC(5),
     kpTable: kpPlanets,
     moonSign: (profile.moonOverride && window.SIGNS.includes(profile.moonOverride.trim())) ? profile.moonOverride.trim() : calculatedMoon,
     sunSign: (profile.sunOverride && window.SIGNS.includes(profile.sunOverride.trim())) ? profile.sunOverride.trim() : calculatedSun,
@@ -726,7 +753,7 @@ window.panchang = (dObj, ms = "amanta", utc = 5.5, geo = null) => {
   const bhadraApprox = karana.includes("Bhadra") || karana.includes("Vishti") ? getS(sr.getTime() + dMs * 0.5, dMs * 0.4) : null;
 
   return {
-    tithi: ["Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", isS ? "Purnima" : "Amavasya"][tIdx % 15],
+    tithi: ["Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", isS ? "Purnima" : "Amavasya"][tIdx % 15] + " (Ends " + new Date(sr.getTime() + (dMs * 1.2)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + ")",
     paksha: isS ? "Shukla" : "Krishna",
     masa,
     nak: window.NAKSHATRAS[Math.floor(ml / (360 / 27))],
@@ -977,9 +1004,9 @@ window.generateDeepSynthesis = (pr, ch, bio, targetDate) => {
   const chartPositionSummary = Object.entries(ch.d1.signs || {}).map(([planet, sign]) => `${planet} in ${sign}`).join(", ");
   const profileIdentity = `${pr?.name || "this native"} from ${pr?.place || "your selected place"}${pr?.gotra ? ` of ${pr.gotra} gotra` : ""}${pr?.jaati ? ` (${pr.jaati})` : ""}`;
   const lagnaHouseMeaning = `${pr?.name || "Your"} ${lagna} Lagna is the starting point of the twelve-house chart. It describes your approach to life, body, identity, and the way other people first experience you. In ${profileIdentity}, the ${lagna} Ascendant creates a rhythm where ${window.SIGN_TRAITS?.[lagna] || 'clarity and momentum'} matters most. Its ruler is ${lagnaLord}, so qualities of ${window.PLANET_INFO[lagnaLord]?.adhidevata || lagnaLord} become a central theme for confidence, purpose, and direction.`;
-  const chalitMeaning = `Your Chalit-style chart keeps the same ${lagna} Ascendant but reads the house results through a more practical lens for ${pr?.name || "you"}. In this view, ${Object.entries(ch.d1.placements || {}).map(([planet, house]) => `${planet} sits in house ${house}`).join(", ")}. In plain language, a house tells you where the influence is experienced: the 1st is self, 2nd resources and speech, 3rd effort, 4th home, 5th learning and creativity, 6th work and health routines, 7th partnership, 8th change, 9th learning and belief, 10th career, 11th gains, and 12th rest and release.`;
-  const shadbalaMeaning = `${pr?.name || "You"}'s Shadbala scores compare the relative operating strength of the seven classical planets in this chart. ${topPlanet} leads at ${(ch.shadbala?.[topPlanet] / 60 || 0).toFixed(1)} Rupas, making its themes easier to activate; ${weakPlanet} is lowest at ${(ch.shadbala?.[weakPlanet] / 60 || 0).toFixed(1)} Rupas, so that area needs planning, patience, and repetition. This is a relative strength guide, not a promise that one planet controls your entire life.`;
-  const gocharaMeaning = `For ${pr?.name || "you"} on ${tD.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}, current transits are read against your ${lagna} Ascendant and ${moon} Moon in ${pr?.place || "your profile location"}. ${Object.entries(ch.transits || {}).map(([planet, sign]) => `${planet} is moving through ${sign}`).join(", ")}. These are timing indicators for your current environment; they describe the atmosphere around your natal potential, not a replacement for your birth chart.`;
+  const chalitMeaning = `Your main birth chart (Lagna) is like a photograph of the sky the moment you were born, but the Bhava Chalit chart shows how that planetary energy actually spills over into your real life. Sometimes a planet appears to be in one house (life area) in your birth chart, but its true effect is felt in the neighboring house because of exact mathematical degrees. The Chalit chart is your "practical reality" chart. It reveals the true areas of life where you are currently experiencing the most friction or flow.`;
+  const shadbalaMeaning = `Shadbala is a mathematical system that measures the exact 'weight' or power of each planet in your chart. Unlike a simple placement, it calculates six different sources of strength (like position, direction, and time of day). ${pr?.name || "Your"} highest scoring planet is ${topPlanet} (at ${(ch.shadbala?.[topPlanet] / 60 || 0).toFixed(1)} Rupas). Because ${topPlanet} is your absolute powerhouse, you should lean heavily into the traits it rules to solve problems (e.g., Sun = Leadership, Mercury = Logic, Jupiter = Wisdom). Conversely, your lowest scoring planet is ${weakPlanet}. This indicates your biggest blind spot—a specific life area where you must apply conscious effort, discipline, and patience because it lacks natural momentum.`;
+  const gocharaMeaning = `While your birth chart is the fixed map of your life, 'Gochara' (Transit) tracks where the planets are currently orbiting in the sky *today*, relative to your birth chart. For ${pr?.name || "you"} on ${tD.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}, these movements are creating real-time energetic shifts. ${Object.entries(ch.transits || {}).map(([planet, sign]) => `${planet} is currently activating ${sign}`).join(", ")}. Understanding these transits helps you navigate the immediate atmosphere—it shows you exactly which areas of your birth chart are being triggered or pressured by the cosmic weather today, telling you when to act and when to wait.`;
   const monthlyMeaning = `This twelve-month matrix is tailored to ${pr?.name || "your"} ${lagna} Ascendant, ${moon} Moon, active ${activeMaha} Mahadasha, and the strongest influence of ${topPlanet}. Each month translates those chart factors into practical themes for work, money, home, and wellbeing in ${pr?.place || "your chosen location"}.`;
 
   // Deep Jaimini Meanings
@@ -1020,10 +1047,17 @@ window.generateDeepSynthesis = (pr, ch, bio, targetDate) => {
     shadbalaMeaning,
     gocharaMeaning,
     monthlyMeaning,
-    dynamicPrescription: { gem: window.PLANET_INFO[lagnaLord]?.gem, charity: window.PLANET_INFO[weakPlanet]?.charity, mantra: window.PLANET_INFO[activeAntar]?.beej, deity: window.PLANET_INFO[lagnaLord]?.adhidevata, action: `Fortify your weakest link (${weakPlanet}) by observing its specific discipline, while ruthlessly leveraging your dominant ${topPlanet} for major decisions.` },
+    dynamicPrescription: { 
+      gem: window.PLANET_INFO[lagnaLord]?.gem, 
+      charity: window.PLANET_INFO[weakPlanet]?.charity, 
+      mantra: window.PLANET_INFO[activeAntar]?.beej, 
+      deity: window.PLANET_INFO[lagnaLord]?.adhidevata, 
+      action: `Fortify your weakest link (${weakPlanet}) by observing its specific discipline, while ruthlessly leveraging your dominant ${topPlanet} for major decisions.`,
+      backupAction: `Dual-Remedy Protocol: If you are experiencing acute real-time stress, you must address both the fixed birth issue and the current transit issue. First, balance your lifelong birth chart weakness (${weakPlanet}) by incorporating its discipline into your daily routine. Second, look to your Chalit (Working) chart and identify the planet currently transiting your 6th, 8th, or 12th house today. Chant the specific seed mantra of that transiting planet to immediately neutralize the temporary friction it is causing.`
+    },
     
     // PDF SPECIFIC GENERATORS
-    pdfShadbala: `Shadbala calculates the exact mathematical "weight" of each planet in your chart. Your highest scoring planet is ${topPlanet}. You have a natural advantage in areas governed by it. Conversely, your lowest scoring planet is ${weakPlanet}, indicating your primary karmic bottleneck where you must apply conscious effort.`,
+    pdfShadbala: `Shadbala calculates the exact mathematical "weight" or power of each planet in your chart. Your highest scoring planet is ${topPlanet}. You have a natural advantage in areas governed by it. Conversely, your lowest scoring planet is ${weakPlanet}, indicating a life area where you must apply conscious effort, planning, and patience.`, 
     pdfBiorhythm: `Biorhythms mathematically map your 30-day internal energy fluctuations. Today, your Physical stamina is ${bioP}%, Emotional stability is ${bioE}%, and Intellectual focus is ${bioI}%. Execute heavy analytical tasks when Intellectual peaks, and prioritize rest when Physical dips.`,
     pdfDasha: `Vimshottari Dasha is the Vedic timeline of your life. While your main cycle is ${activeMaha}, your current sub-cycle (Antardasha) is ruled by ${activeAntar}. This means the immediate focus of your life is drawn toward ${antarTraits[activeAntar]}. To make the absolute best use of this phase, lean entirely into the behavioral traits of ${activeAntar} rather than fighting its natural current.`,
     advLedger: `For ${pr?.name || "this native"}, the ${lagna} Ascendant describes your outward approach to life and your ${moon} Moon describes your emotional habits. Your chart places ${chartPositionSummary}. ${topPlanet} is your strongest planetary channel, so its themes are easier for you to express; ${weakPlanet} is the area that benefits most from patience and deliberate practice. In the ledger, the planet identifies a life function, its Rashi shows the style in which that function operates, the degree marks its exact position, and the nakshatra adds a finer psychological pattern. In practical terms, use strong planets as existing strengths and develop weaker planets as skills rather than treating them as fixed limitations.`,

@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+const fs = require('fs');
+let c = fs.readFileSync('src/jsx/relationship-graph.jsx', 'utf8');
+
+const replacement = `import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 const calculateRoleScore = (c1, c2, role) => {
@@ -10,8 +13,7 @@ const calculateRoleScore = (c1, c2, role) => {
 window.RelationshipGraph = ({ prs, chs }) => {
   const d3Container = useRef(null);
   const [roleMode, setRoleMode] = useState("Spouse");
-  const [profileA, setProfileA] = useState("ALL");
-  const [profileB, setProfileB] = useState("ALL");
+  const [centralProfileId, setCentralProfileId] = useState("ALL");
 
   useEffect(() => {
     if (!prs || prs.length < 2 || !d3Container.current) return;
@@ -27,20 +29,13 @@ window.RelationshipGraph = ({ prs, chs }) => {
       .attr("height", height)
       .style("overflow", "visible");
 
-    // Determine which nodes to show
-    let activePrs = prs;
-    if (profileA !== "ALL" && profileB !== "ALL") {
-       activePrs = prs.filter(p => p.id === profileA || p.id === profileB);
-    } else if (profileA !== "ALL") {
-       activePrs = prs; // Show all, but we will filter links
-    } else if (profileB !== "ALL") {
-       activePrs = prs; // Show all, but we will filter links
-    }
+    // Only include the central node and those connected to it
+    const activePrs = centralProfileId === "ALL" ? prs : prs.filter(p => p.id === centralProfileId || prs.length > 0);
     
     const nodes = activePrs.map(p => ({
       id: p.id,
       name: p.name.split(" ")[0],
-      group: (p.id === profileA || p.id === profileB) ? 2 : 1
+      group: p.id === centralProfileId ? 2 : 1
     }));
 
     const links = [];
@@ -49,16 +44,8 @@ window.RelationshipGraph = ({ prs, chs }) => {
         const p1 = prs[i];
         const p2 = prs[j];
         
-        let shouldConnect = true;
-        if (profileA !== "ALL" && profileB !== "ALL") {
-           shouldConnect = (p1.id === profileA && p2.id === profileB) || (p1.id === profileB && p2.id === profileA);
-        } else if (profileA !== "ALL") {
-           shouldConnect = p1.id === profileA || p2.id === profileA;
-        } else if (profileB !== "ALL") {
-           shouldConnect = p1.id === profileB || p2.id === profileB;
-        }
-        
-        if (!shouldConnect) continue;
+        // If a central profile is selected, only show links that connect to it
+        if (centralProfileId !== "ALL" && p1.id !== centralProfileId && p2.id !== centralProfileId) continue;
         
         const c1 = chs[p1.id];
         const c2 = chs[p2.id];
@@ -93,6 +80,7 @@ window.RelationshipGraph = ({ prs, chs }) => {
       .attr("stroke-width", d => Math.max(1, d.value / 6))
       .attr("stroke", d => getLinkColor(d.value));
 
+    // Link labels for scores
     const linkLabels = svg.append("g")
       .selectAll("text")
       .data(links)
@@ -164,40 +152,25 @@ window.RelationshipGraph = ({ prs, chs }) => {
         .on("drag", dragged)
         .on("end", dragended);
     }
-  }, [prs, chs, roleMode, profileA, profileB]);
+  }, [prs, chs, roleMode, centralProfileId]);
 
   return (
     <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] shadow-inner mt-8">
-      <div className="flex justify-between items-start md:items-center mb-6 flex-col md:flex-row gap-4">
+      <div className="flex justify-between items-center mb-4">
          <div>
            <h3 className="text-amber-300 font-serif text-xl">Vedic Network Graph</h3>
-           <p className="text-xs text-white/50 font-mono">Topological Compatibility Filter</p>
+           <p className="text-xs text-white/50 font-mono">D3.js Force-Directed Topology</p>
          </div>
-         <div className="flex flex-wrap items-center gap-2">
-            <select value={profileA} onChange={(e) => setProfileA(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none">
-              <option value="ALL" className="bg-[#09090b]">All Profiles</option>
+         <div className="flex flex-col sm:flex-row gap-2">
+            <select value={centralProfileId} onChange={(e) => setCentralProfileId(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none max-w-[150px]">
+              <option value="ALL" className="bg-[#09090b]">All Connections</option>
               {prs.map(p => (
-                 <option key={`A-${p.id}`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
+                 <option key={p.id} value={p.id} className="bg-[#09090b]">{p.name}</option>
               ))}
             </select>
-            <span className="text-white/30 text-xs">←</span>
-            <select value={roleMode} onChange={(e) => setRoleMode(e.target.value)} className="bg-amber-900/20 text-amber-300 border border-amber-500/30 rounded-lg px-2 py-1 text-xs outline-none">
-              <option value="Spouse" className="bg-[#09090b]">Spouse / Partner</option>
-              <option value="Family" className="bg-[#09090b]">Family Member</option>
-              <option value="Sibling" className="bg-[#09090b]">Sibling</option>
-              <option value="Mother" className="bg-[#09090b]">Mother</option>
-              <option value="Father" className="bg-[#09090b]">Father</option>
-              <option value="Son" className="bg-[#09090b]">Son</option>
-              <option value="Daughter" className="bg-[#09090b]">Daughter</option>
-              <option value="In-Laws" className="bg-[#09090b]">In-Laws</option>
-              <option value="Business Partner" className="bg-[#09090b]">Business Partner</option>
-              <option value="Friend" className="bg-[#09090b]">Friend</option>
-            </select>
-            <span className="text-white/30 text-xs">→</span>
-            <select value={profileB} onChange={(e) => setProfileB(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none">
-              <option value="ALL" className="bg-[#09090b]">All Profiles</option>
-              {prs.map(p => (
-                 <option key={`B-${p.id}`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
+            <select value={roleMode} onChange={(e) => setRoleMode(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none">
+              {["Spouse", "Girlfriend", "Family", "Brother", "Sister", "Mother", "Father", "In-Laws", "Son", "Daughter", "Business Partner", "Friend"].map(r => (
+                 <option key={r} value={r} className="bg-[#09090b]">Relation: {r}</option>
               ))}
             </select>
          </div>
@@ -212,3 +185,6 @@ window.RelationshipGraph = ({ prs, chs }) => {
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/jsx/relationship-graph.jsx', replacement);

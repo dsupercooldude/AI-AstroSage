@@ -399,7 +399,16 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Gochara (Transit) Impact</span> <window.SectionConfidence score={95} type="ai" label="AI Mapping" /></h3>
           <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">{weekday}, {date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
         </div>
-        {!isExpert && <p className="text-xs text-slate-400 font-mono mb-4">Transits (Gochara) measure where the planets are in the sky *today* and how they interact with your static birth chart.</p>}
+        {!isExpert && (
+          <div className="text-xs text-slate-400 font-mono mb-4 bg-black/40 p-3 rounded-xl border border-[#27272a]">
+            Transits (Gochara) measure where the planets are in the sky *today* and how they interact with your static birth chart. 
+            <div className="mt-2 text-[10px] flex gap-4">
+              <span className="text-emerald-400 font-bold">&gt;80: Highly Favorable / Strong Flow</span>
+              <span className="text-amber-400 font-bold">50-80: Moderate / Stable</span>
+              <span className="text-rose-400 font-bold">&lt;50: High Friction / Requires Patience</span>
+            </div>
+          </div>
+        )}
         <div className="space-y-3">
           {Object.entries(gochara).map(([domain, data]) => (
             <div key={domain} className="bg-[#09090b] p-3.5 rounded-2xl border border-[#27272a]">
@@ -425,6 +434,9 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           <span className="text-[10px] text-green-400 uppercase tracking-widest font-bold bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">● Chart Driven</span>
         </div>
         <p className="text-xs text-slate-400 font-mono mb-4">{dynamicRx.action}</p>
+        {dynamicRx.backupAction && (
+           <p className="text-[10px] text-indigo-400/80 font-mono mb-4 bg-indigo-950/20 p-2 rounded border border-indigo-500/20">{dynamicRx.backupAction}</p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
           <div className="bg-[#09090b] p-4 rounded-2xl border border-[#27272a] col-span-1 md:col-span-2 shadow-inner">
             <div className="text-slate-500 text-[10px] uppercase mb-1 tracking-widest font-bold">Presiding Deity (Lagnesh) & Active Dasha Mantra</div>

@@ -229,7 +229,7 @@ const bootInterval = setInterval(() => {
                     onChange={(e) => setActiveProfileId(e.target.value)}
                     className="bg-[#09090b] border border-[#27272a] text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none max-w-[120px] sm:max-w-[160px] truncate hover:border-[#3f3f46] transition"
                   >
-                    {prs.map((p) => (<option className="bg-[#09090b] text-white" key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
+                    {prs.map((p) => (<option className="bg-[#09090b] text-white notranslate" key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>))}
                   </select>
                 )}
                 <button onClick={() => handleOpenEdit({})} title="New Profile" className="p-2.5 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-indigo-400 hover:text-white"><Icon name="user-plus" size={18} /></button>
@@ -306,7 +306,7 @@ const bootInterval = setInterval(() => {
                         <label className="text-[9px] text-slate-500 uppercase font-mono mb-1 block">Related Profile</label>
                         <select value={formData.associatedProfileId || ''} onChange={(e) => setFormData({ ...formData, associatedProfileId: e.target.value })} className="w-full bg-[#09090b] border border-[#27272a] rounded-xl px-2.5 py-2 text-xs outline-none text-white appearance-none">
                           <option value="">None</option>
-                          {prs.filter(p => p.id !== formData.id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          {prs.filter(p => p.id !== formData.id).map(p => <option key={p.id} value={p.id}><span className="notranslate">{p.name}</span></option>)}
                         </select>
                       </div>
                       <div>

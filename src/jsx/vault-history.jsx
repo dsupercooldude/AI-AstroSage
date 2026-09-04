@@ -5,17 +5,42 @@ var { useState, useEffect } = window.React;
 window.VaultHistoryService = {
   async getLogs(module, emHash, profileId) {
     if (!emHash || !profileId) return [];
+    let allLogs = [];
     try {
+      // 1. Fetch new logs
       const fileName = `gl_vault_${module}_${emHash}_${profileId}.json`;
       const hFile = await window.AppDB.getFile(fileName);
       if (hFile && hFile.content && hFile.content.logs) {
         const dec = typeof hFile.content.logs === "string" ? await window.CryptoUtils.decrypt(hFile.content.logs) : hFile.content.logs;
-        return typeof dec === "string" ? JSON.parse(dec) : dec || [];
+        const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
+        allLogs = [...allLogs, ...parsed];
       }
-      return [];
+      
+      // 2. Fetch legacy logs for Tarot
+      if (module === 'tarot') {
+          const legFile = await window.AppDB.getFile(`gl_tarot_${emHash}_${profileId}.json`);
+          if (legFile && legFile.content && legFile.content.history) {
+              const dec = typeof legFile.content.history === "string" ? await window.CryptoUtils.decrypt(legFile.content.history) : legFile.content.history;
+              const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
+              allLogs = [...allLogs, ...parsed];
+          }
+      }
+      // 3. Fetch legacy logs for Palmistry
+      if (module === 'palmistry') {
+          const legFile = await window.AppDB.getFile(`gl_palmistry_analysis_${emHash}_${profileId}.json`);
+          if (legFile && legFile.content && legFile.content.h) {
+              const dec = typeof legFile.content.h === "string" ? await window.CryptoUtils.decrypt(legFile.content.h) : legFile.content.h;
+              const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
+              allLogs = [...allLogs, ...parsed];
+          }
+      }
+      
+      // Sort chronologically
+      allLogs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+      return allLogs;
     } catch (e) {
       console.error("VaultHistory getLogs error", e);
-      return [];
+      return allLogs;
     }
   },
   
@@ -89,7 +114,7 @@ window.VaultHistoryDisplay = ({ module, emHash, profileId }) => {
     <div className="mt-8 bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-xl">
        <h3 className="font-serif text-xl text-amber-200 border-b border-[#27272a] pb-4 mb-4 flex items-center gap-2">
          <window.Icon name="archive" size={20} />
-         Vault History ({logs.length})
+         Oracle Divination Logs ({logs.length})
        </h3>
        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 beauty-scroll">
           {logs.slice().reverse().map((log, i) => (

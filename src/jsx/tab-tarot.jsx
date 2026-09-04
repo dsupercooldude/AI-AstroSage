@@ -6,6 +6,27 @@ window.TarotTab = ({ settings, emHash, pr }) => {
   const [deckMinor, setDeckMinor] = useState([]);
   const [selectedMajor, setSelectedMajor] = useState(null);
   const [selectedMinor, setSelectedMinor] = useState(null);
+  const [alreadyDrawnToday, setAlreadyDrawnToday] = useState(false);
+  
+  useEffect(() => {
+    // Load Tarot of the day
+    window.VaultHistoryService.getLogs("tarot", emHash, pr?.id || "default").then(logs => {
+       if (logs && logs.length > 0) {
+          const lastLog = logs[logs.length - 1];
+          if (lastLog.ts) {
+             const logDate = new Date(lastLog.ts).toDateString();
+             const today = new Date().toDateString();
+             if (logDate === today && lastLog.cards && lastLog.cards.length === 2) {
+                setAlreadyDrawnToday(true);
+                setQuestion(lastLog.question || "");
+                setSelectedMajor(lastLog.cards[0]);
+                setSelectedMinor(lastLog.cards[1]);
+                setReading(lastLog.reading || lastLog.analysis || lastLog.text);
+             }
+          }
+       }
+    });
+  }, [emHash, pr?.id]);
   const [question, setQuestion] = useState("");
   const [reading, setReading] = useState("");
   const [isDrawing, setIsDrawing] = useState(false);
@@ -117,7 +138,7 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             {!selectedMajor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-indigo-500/40 bg-gradient-to-br from-indigo-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-indigo-500/20 flex items-center justify-center relative overflow-hidden group"
-                onClick={() => drawRandom(deckMajor, setSelectedMajor)}
+                onClick={() => !alreadyDrawnToday && drawRandom(deckMajor, setSelectedMajor)}
               >
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgMEw4IDhaTTAgOEw4IDBaIiBzdHJva2U9IiM0ZjQ2ZTUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50"></div>
                 <Icon name="sparkle" size={24} className="text-indigo-500/50 group-hover:text-indigo-400 transition" />
@@ -140,7 +161,7 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             {!selectedMinor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-pink-500/40 bg-gradient-to-br from-pink-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-pink-500/20 flex items-center justify-center relative overflow-hidden group"
-                onClick={() => drawRandom(deckMinor, setSelectedMinor)}
+                onClick={() => !alreadyDrawnToday && drawRandom(deckMinor, setSelectedMinor)}
               >
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgMEw4IDhaTTAgOEw4IDBaIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50"></div>
                 <Icon name="diamonds-four" size={24} className="text-pink-500/50 group-hover:text-pink-400 transition" />
@@ -163,12 +184,12 @@ window.TarotTab = ({ settings, emHash, pr }) => {
         <div className="flex justify-center mb-6">
           <button 
             onClick={getReading}
-            disabled={!selectedMajor || !selectedMinor || isDrawing}
+            disabled={!selectedMajor || !selectedMinor || isDrawing || alreadyDrawnToday}
             style={(!selectedMajor || !selectedMinor || isDrawing) ? { backgroundColor: 'var(--theme-accent-faint)', color: 'rgba(255,255,255,0.3)' } : { backgroundColor: 'var(--theme-accent)', color: '#fff', boxShadow: '0 10px 25px var(--theme-accent-light)' }}
             className="px-8 py-3 rounded-full font-bold transition flex items-center justify-center"
           >
             {isDrawing ? <Icon name="spinner" className="animate-spin mr-2" size={18} /> : null}
-            {isDrawing ? 'Channeling Oracle...' : 'Read My Cards'}
+            {alreadyDrawnToday ? 'Daily Oracle Locked (Returns at Midnight)' : isDrawing ? 'Channeling Oracle...' : 'Read My Cards'}
           </button>
         </div>
 

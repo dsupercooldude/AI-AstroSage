@@ -175,14 +175,14 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
       {/* ========================================== */}
       <div className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
         
-        <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Astrological Charts & Energy Cycles</h3>
+        <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Primary Birth Chart (Lagna)</h3>
         
         <div className="grid grid-cols-2 gap-6 mb-10">
           <div className="bg-[#121426] p-5 rounded-2xl border border-[#27272a] flex flex-col items-center justify-center min-h-[350px]">
-            {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="NORTH" isExpert={false} titleDesc="North Indian (Diamond)" />}
+            {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="NORTH" isExpert={false} titleDesc="North Indian (Lagna)" />}
           </div>
           <div className="bg-[#121426] p-5 rounded-2xl border border-[#27272a] flex flex-col items-center justify-center min-h-[350px]">
-            {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="SOUTH" isExpert={false} titleDesc="South Indian (Grid)" />}
+            {window.KundaliRenderer && <window.KundaliRenderer ac={ch.d1} ch={ch} kpTable={null} style="SOUTH" isExpert={false} titleDesc="South Indian (Lagna)" />}
           </div>
         </div>
 
@@ -588,20 +588,35 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                         </div>
                         <div className="text-xs text-white/50 font-mono mt-2">Analysis between {p1.name} & {p2.name}</div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(ashtakoot.details).map(([param, points]) => (
-                          <div key={param} className="bg-black/30 p-4 rounded-xl border border-[#27272a]">
-                            <div className="text-xs text-white/60 uppercase font-mono mb-1 tracking-widest">{param}</div>
-                            <div className="font-bold text-amber-200 text-lg">{Number(points).toFixed(1)}</div>
-                          </div>
-                        ))}
+                                            <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(ashtakoot.details).map(([param, points]) => {
+                           const detailMap = {
+                              Varna: { max: 1, meaning: "Spiritual and social compatibility; mutual respect and harmony in lifestyle." },
+                              Vashya: { max: 2, meaning: "Control and attraction dynamics. High score means personalities naturally influence each other." },
+                              Tara: { max: 3, meaning: "Nakshatra-based compatibility and timing support. Emotional and timing alignment." },
+                              Yoni: { max: 4, meaning: "Physical chemistry and instinctual comfort. Mutual ease in daily life." },
+                              Maitri: { max: 5, meaning: "Planetary friendship. Easier understanding, trust, and shared values." },
+                              Gana: { max: 6, meaning: "Temperament match. Emotional style and how naturally you respond to each other." },
+                              Bhakoot: { max: 7, meaning: "House and sign alignment. Support for financial, family, and life direction harmony." },
+                              Nadi: { max: 8, meaning: "Vital energy and health compatibility. Lower values require more care in daily habits." }
+                           };
+                           return (
+                             <div key={param} className="bg-black/30 p-4 rounded-xl border border-[#27272a]">
+                               <div className="flex justify-between items-center mb-1">
+                                 <div className="text-xs text-white/60 uppercase font-mono tracking-widest">{param}</div>
+                                 <div className="font-bold text-amber-200 text-lg">{Number(points).toFixed(1)} / {detailMap[param]?.max || 1}</div>
+                               </div>
+                               <p className="text-[10px] text-white/70 font-mono leading-relaxed mt-2">{detailMap[param]?.meaning || ""}</p>
+                             </div>
+                           );
+                        })}
                       </div>
-                      {window.latestUnionAI && (
-                        <div className="mt-6 bg-[#121426] p-6 rounded-2xl border border-[#27272a]">
-                          <div className="text-xs text-amber-500 uppercase font-mono mb-2 tracking-widest border-b border-amber-500/20 pb-2">AI Sage Relationship Analysis</div>
-                          <div className="text-xs text-white/80 leading-relaxed font-mono whitespace-pre-wrap">{window.latestUnionAI}</div>
+                      <div className="mt-6 bg-[#121426] p-6 rounded-2xl border border-[#27272a]">
+                          <div className="text-xs text-amber-500 uppercase font-mono mb-2 tracking-widest border-b border-amber-500/20 pb-2">Vedic Synthesis</div>
+                          <div className="text-xs text-white/80 leading-relaxed font-mono whitespace-pre-wrap">
+                            {window.latestUnionAI || `The Ashtakoot score of ${ashtakoot.score}/36 indicates ${ashtakoot.score >= 28 ? "an exceptionally strong energetic alignment, bringing mutual prosperity and understanding." : ashtakoot.score >= 18 ? "a moderate alignment that will require conscious communication and patience, but is fundamentally workable." : "a challenging dynamic that requires deliberate effort to maintain harmony and balance."} Based on the individual component scores above, you must prioritize addressing areas with the lowest compatibility ratings by practicing empathy and implementing practical remedies.`}
+                          </div>
                         </div>
-                      )}
                     </div>
                   );
                }
@@ -615,10 +630,10 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
       {/* ========================================== */}
       {/* PAGE 14: PALMISTRY HISTORY (IF AVAILABLE)  */}
       {/* ========================================== */}
-      {palmistryHistory.length > 0 && (() => {
-          const valid = palmistryHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
+      {(() => {
+          const valid = palmistryHistory.slice().reverse();
           if (valid.length > 0) {
-            const recent = valid.slice().reverse().slice(0, 3);
+            const recent = valid;
             return recent.map((latest, index) => (
               <div key={index} className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
                 <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Hand Palmistry Analysis</h3>
@@ -627,7 +642,7 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                     <div className="font-bold text-amber-300 text-xl">Hand Style</div>
                     <div className="text-white/80 font-mono text-sm">{new Date(latest.ts).toLocaleDateString()}</div>
                   </div>
-                  <div className="text-lg font-bold text-amber-200 mb-4">{latest.style}</div>
+                  <div className="text-lg font-bold text-amber-200 mb-4">{latest.style || "Palmistry Reading"}</div>
                   {latest.summary && (
                      <div className="text-emerald-400 font-bold mb-2">AI Summary: {latest.summary}</div>
                   )}
@@ -635,21 +650,17 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                     {latest.reading || latest.analysis || latest.text}
                   </div>
                 </div>
-                <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
-                  Palmistry readings from the last 30 days: {valid.length} capture(s)
-                </div>
               </div>
             ));
-          }
-          return null;
+          } return null;
       })()}
       {/* ========================================== */}
       {/* PAGE 15: TAROT HISTORY (IF AVAILABLE)      */}
       {/* ========================================== */}
-      {tarotHistory.length > 0 && (() => {
-          const valid = tarotHistory.filter((item) => Date.now() - new Date(item.ts).getTime() <= 30 * 24 * 60 * 60 * 1000);
+      {(() => {
+          const valid = tarotHistory.slice().reverse();
           if (valid.length > 0) {
-            const recent = valid.slice().reverse().slice(0, 3);
+            const recent = valid;
             return recent.map((latest, index) => (
               <div key={index} className="pdf-page w-[794px] h-[1123px] bg-[#0b0d19] text-[#F2EFE6] p-10 font-sans relative overflow-hidden box-border">
                 <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">Tarot Reading</h3>
@@ -672,13 +683,9 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                     {latest.reading || latest.analysis || latest.text}
                   </div>
                 </div>
-                <div className="mt-8 text-xs text-white/50 font-mono uppercase tracking-widest">
-                  Tarot readings from the last 30 days: {valid.length} reading(s)
-                </div>
               </div>
             ));
-          }
-          return null;
+          } return null;
       })()}
       {/* ========================================== */}
       {/* PAGE 16: AI SAGE PROFILE SUMMARY           */}
@@ -688,8 +695,8 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
           <h3 className="font-serif text-3xl text-amber-400 mb-6 border-b border-amber-400/30 pb-2">AI Sage Profile Summary</h3>
           <div className="bg-[#121426] p-6 rounded-2xl border border-[#27272a] mb-8">
             <p className="text-sm text-white/80 mb-4 font-mono">This summary is synthesized from your ongoing discussions with the AI Vedic Sage.</p>
-            <div className="text-white/90 font-sans text-sm leading-relaxed whitespace-pre-wrap">
-              {askSummary}
+            <div className="text-white/90 font-sans text-sm leading-relaxed whitespace-pre-line">
+              {window.formatMarkdown ? window.formatMarkdown(askSummary) : askSummary}
             </div>
           </div>
         </div>

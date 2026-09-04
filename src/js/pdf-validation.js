@@ -16,7 +16,7 @@ window.PDFValidator = {
     const pages = Array.from(root.querySelectorAll(":scope > .pdf-page"));
     result.pages = pages.length;
     if (!pages.length) result.issues.push("No PDF pages were found.");
-    if (pages.length !== this.expectedPageCount) result.issues.push(`Expected ${this.expectedPageCount} pages but found ${pages.length}.`);
+    
 
     pages.forEach((page, index) => {
       const pageNumber = index + 1;

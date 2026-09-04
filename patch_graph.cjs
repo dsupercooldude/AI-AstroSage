@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+const fs = require('fs');
+let c = fs.readFileSync('src/jsx/relationship-graph.jsx', 'utf8');
+
+const newComponent = `import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 const calculateRoleScore = (c1, c2, role) => {
@@ -177,7 +180,7 @@ window.RelationshipGraph = ({ prs, chs }) => {
             <select value={profileA} onChange={(e) => setProfileA(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none">
               <option value="ALL" className="bg-[#09090b]">All Profiles</option>
               {prs.map(p => (
-                 <option key={`A-${p.id}`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
+                 <option key={\`A-\${p.id}\`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
               ))}
             </select>
             <span className="text-white/30 text-xs">←</span>
@@ -197,7 +200,7 @@ window.RelationshipGraph = ({ prs, chs }) => {
             <select value={profileB} onChange={(e) => setProfileB(e.target.value)} className="bg-black/40 border border-[#27272a] rounded-lg px-2 py-1 text-xs text-white outline-none">
               <option value="ALL" className="bg-[#09090b]">All Profiles</option>
               {prs.map(p => (
-                 <option key={`B-${p.id}`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
+                 <option key={\`B-\${p.id}\`} value={p.id} className="bg-[#09090b] notranslate">{p.name}</option>
               ))}
             </select>
          </div>
@@ -212,3 +215,5 @@ window.RelationshipGraph = ({ prs, chs }) => {
     </div>
   );
 };
+`
+fs.writeFileSync('src/jsx/relationship-graph.jsx', newComponent);
