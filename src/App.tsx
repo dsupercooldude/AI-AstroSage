@@ -17,6 +17,7 @@ import './jsx/tab-ask.jsx';
 import './jsx/tab-reports.jsx';
 import './jsx/tab-week.jsx';
 import './jsx/tab-month.jsx';
+import './jsx/tab-remedies.jsx';
 import './jsx/tabs.jsx';
 import { AmbientBackground } from './jsx/ambient';
 import { PWAInstallButton } from './jsx/PWAInstallButton';

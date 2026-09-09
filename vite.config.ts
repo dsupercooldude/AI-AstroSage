@@ -18,6 +18,19 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+        workbox: {
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'cdn-cache',
+                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
+            }
+          ]
+        },
         manifest: {
           id: '/',
           name: 'Vedic Oracle App',

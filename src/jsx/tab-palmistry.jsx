@@ -32,7 +32,25 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     } catch (e) {}
   };
   const [streaming, setStreaming] = useState(false);
+  const [videoDevices, setVideoDevices] = useState([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState('');
+
+  const loadDevices = async () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const vInputs = devices.filter(d => d.kind === 'videoinput');
+        setVideoDevices(vInputs);
+        if (vInputs.length > 0 && !selectedDeviceId) {
+           const backCam = vInputs.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+           setSelectedDeviceId(backCam ? backCam.deviceId : vInputs[0].deviceId);
+        }
+      } catch(e) {}
+    }
+  };
+
   useEffect(() => {
+    loadDevices();
     // Try to load cached palm capture (valid for 7 days)
     try {
       const cached = localStorage.getItem('gl_palm_cache');
@@ -62,19 +80,22 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     setStreaming(false);
     setCameraReady(false);
   };
-  const requestCamera = async () => {
+  const requestCamera = async (deviceIdToUse) => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setAnalysis('Camera access is not available in this browser. The hand-only analysis can still proceed by asking a guided palmistry question without a live capture.');
       return;
     }
+    
+    stopCameraStream(); // Ensure previous stream is stopped before opening a new one
+
     try {
+      const targetDevice = deviceIdToUse || selectedDeviceId;
+      const videoConstraints = targetDevice 
+        ? { deviceId: { exact: targetDevice }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+        : { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-        },
+        video: videoConstraints,
         audio: false
       });
       if (videoRef.current) {
@@ -83,11 +104,20 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
       }
       setStreaming(true);
       setCameraReady(true);
+      await loadDevices(); // Reload to get device labels post-permission
     } catch (err) {
       setAnalysis('Camera permission was blocked. The app stays privacy-safe and will not capture or retain a face image. You can continue with a safe hand-only prompt instead.');
     }
   };
-  
+
+  const handleDeviceChange = (e) => {
+    const newId = e.target.value;
+    setSelectedDeviceId(newId);
+    if (cameraReady) {
+      requestCamera(newId);
+    }
+  };
+
   const askPalmistry = async () => {
     if (!question.trim()) return;
     const userQ = question;
@@ -212,12 +242,25 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
         </div>
         <div className="relative z-10 flex flex-col items-end gap-2 shrink-0 w-full md:w-auto">
            {!cameraReady ? (
-             <button onClick={requestCamera} className="w-full md:w-auto px-6 py-3 rounded-full bg-violet-600 text-white font-bold text-sm hover:bg-violet-500 transition shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2">
+             <button onClick={() => requestCamera()} className="w-full md:w-auto px-6 py-3 rounded-full bg-violet-600 text-white font-bold text-sm hover:bg-violet-500 transition shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2">
                <window.Icon.Camera size={18} /> Enable Camera
              </button>
            ) : (
-             <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-mono uppercase tracking-widest font-bold">
-               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sensor Active
+             <div className="flex flex-col items-end gap-2">
+               <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-mono uppercase tracking-widest font-bold">
+                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sensor Active
+               </div>
+               {videoDevices.length > 1 && (
+                 <select 
+                   value={selectedDeviceId} 
+                   onChange={handleDeviceChange}
+                   className="bg-black/50 border border-violet-500/30 rounded-lg px-2 py-1 text-xs text-violet-200 outline-none font-mono"
+                 >
+                   {videoDevices.map(d => (
+                     <option key={d.deviceId} value={d.deviceId}>{d.label || `Camera ${videoDevices.indexOf(d) + 1}`}</option>
+                   ))}
+                 </select>
+               )}
              </div>
            )}
         </div>

@@ -1,9 +1,10 @@
 // src/jsx/tabs.jsx
+import { motion, AnimatePresence } from 'motion/react';
 var React = window.React;
 var { useState, Fragment } = window.React;
 
 window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs, chs, u, setU, updateSettings }) => {
-  const { PersonTab, ReportsTab, PanchangTab, CompatTab, AskTab, WeekTab, MonthTab, PalmistryTab, TarotTab } = window;
+  const { PersonTab, ReportsTab, PanchangTab, CompatTab, AskTab, WeekTab, MonthTab, PalmistryTab, TarotTab, RemediesTab } = window;
   const [tb, setTb] = useState("person");
 
   React.useEffect(() => {
@@ -69,6 +70,7 @@ window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs,
       <div className="flex gap-1.5 overflow-x-auto scrollbar-hide rounded-2xl border border-[#27272a] bg-[#18181b] p-1.5 font-mono text-[11px] shadow-2xl mb-5">
         {[
           { id: "person", l: "Astrology & Dasha", icon: "planet" },
+          { id: "remedies", l: "Daily Remedies", icon: "sparkle" },
           { id: "reports", l: "Advanced Reports", icon: "file-text" },
           { id: "panchang", l: "Panchang & Muhurta", icon: "calendar" },
           { id: "union", l: "Union Milan", icon: "heart" },
@@ -92,15 +94,26 @@ window.TabOrchestrator = ({ pr, ch, date, setDate, settings, onEditProfile, prs,
         ))}
       </div>
       
-      {tb === "person" && <PersonTab pr={pr} ch={ch} date={date} setDate={setDate} settings={settings} onEdit={onEditProfile} bioScores={window.bio ? window.bio(pr?.dob, date, pr?.utcOffset) : {p:0,e:0,i:0}} />}
-      {tb === "reports" && <ReportsTab pr={pr} ch={ch} date={date} />}
-      {tb === "panchang" && <PanchangTab d={date} setDate={setDate} p={pr} utc={pr?.utcOffset || 5.5} settings={settings} />}
-      {tb === "union" && <CompatTab prs={prs} chs={chs} settings={settings} date={date} />}
-      {tb === "palmistry" && <PalmistryTab pr={pr} settings={settings} emHash={u?.emailHash} />}
-      {tb === "tarot" && <TarotTab settings={settings} emHash={u?.emailHash} pr={pr} />}
-      {tb === "week" && <WeekTab pr={pr} ch={ch} />}
-      {tb === "month" && <MonthTab pr={pr} ch={ch} />}
-      {tb === "ask" && <AskTab em={u.email} emHash={u.emailHash} set={settings} pr={pr} ch={ch} date={date} />}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tb}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {tb === "person" && <PersonTab pr={pr} ch={ch} date={date} setDate={setDate} settings={settings} onEdit={onEditProfile} bioScores={window.bio ? window.bio(pr?.dob, date, pr?.utcOffset) : {p:0,e:0,i:0}} />}
+          {tb === "remedies" && <RemediesTab pr={pr} ch={ch} date={date} />}
+          {tb === "reports" && <ReportsTab pr={pr} ch={ch} date={date} />}
+          {tb === "panchang" && <PanchangTab d={date} setDate={setDate} p={pr} utc={pr?.utcOffset || 5.5} settings={settings} />}
+          {tb === "union" && <CompatTab prs={prs} chs={chs} settings={settings} date={date} />}
+          {tb === "palmistry" && <PalmistryTab pr={pr} settings={settings} emHash={u?.emailHash} />}
+          {tb === "tarot" && <TarotTab settings={settings} emHash={u?.emailHash} pr={pr} />}
+          {tb === "week" && <WeekTab pr={pr} ch={ch} />}
+          {tb === "month" && <MonthTab pr={pr} ch={ch} />}
+          {tb === "ask" && <AskTab em={u.email} emHash={u.emailHash} set={settings} pr={pr} ch={ch} date={date} />}
+        </motion.div>
+      </AnimatePresence>
     </Fragment>
   );
 };
