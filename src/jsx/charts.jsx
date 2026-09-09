@@ -39,8 +39,8 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
   };
 
   return (
-    <div className="space-y-4 w-full max-w-lg mx-auto">
-      <div className="flex flex-col items-center justify-center p-6 bg-black/30 rounded-2xl border border-[#27272a] shadow-inner">
+    <div className="flex flex-wrap lg:flex-nowrap gap-6 w-full justify-center items-start">
+      <div className="flex flex-col items-center justify-center p-6 bg-black/30 rounded-2xl border border-[#27272a] shadow-inner w-full max-w-lg mx-auto shrink-0">
         <div className="text-center font-serif text-lg text-amber-200 mb-6">{ac.lagna} Lagna Chart</div>
 
         {/* NORTH INDIAN CHART (DIAMOND SVG) */}
@@ -142,7 +142,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
 
       {/* EXPERT KP TABLE */}
       {((isExpert || isKpView) && kpTable) && (
-        <div className="overflow-x-auto pt-4 gl-fadein w-full">
+        <div className="overflow-x-auto gl-fadein w-full lg:flex-1 max-w-lg mx-auto">
           <table className="w-full text-[10px] font-mono text-left border-collapse bg-black/40 border border-[#27272a] rounded-xl shadow-lg">
             <thead>
               <tr className="border-b border-[#27272a] t50 uppercase"><th className="pb-2 pt-2 pl-3">Planet</th><th className="pb-2 pt-2">Sign</th><th className="pb-2 pt-2">Nakshatra</th><th className="pb-2 pt-2">Sub Lord</th></tr>
