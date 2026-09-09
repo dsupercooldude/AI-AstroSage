@@ -3,14 +3,19 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. CLOUD AI GATEWAY (MULTI-PROVIDER API ROUTER)
 // ══════════════════════════════════════════════════════════════════════════════
-window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
+window.executeMultiProviderAI = async (prompt, settings, systemPrompt, chatHistory = []) => {
   const keys = Object.fromEntries(Object.entries(settings?.apiKeys || {}).map(([id, key]) => [id, typeof key === "string" ? key.trim() : key]));
   const preferredModel = settings?.aiModel || "auto";
   const failures = [];
 
   const callGemini = async (apiKey) => {
+    const contents = chatHistory.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.text }]
+    }));
+    contents.push({ role: "user", parts: [{ text: prompt }] });
     const body = {
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: contents,
       generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
     };
     if (systemPrompt && systemPrompt.trim() !== "") {
@@ -39,7 +44,11 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
         max_tokens: 4096
       })
@@ -58,7 +67,11 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
       },
       body: JSON.stringify({
         model: "llama3-8b-8192",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
         max_tokens: 4096
       })
@@ -77,7 +90,11 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
         max_tokens: 4096
       })
@@ -96,7 +113,11 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
       },
       body: JSON.stringify({
         model: "moonshot-v1-8k",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
+          { role: "user", content: prompt }
+        ],
         temperature: 0.7,
         max_tokens: 4096
       })
@@ -115,7 +136,11 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt) => {
       },
       body: JSON.stringify({
         model: "meta-llama/llama-3.1-8b-instruct:free",
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: prompt }],
+        messages: [
+          ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+          ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
+          { role: "user", content: prompt }
+        ],
         max_tokens: 4096
       })
     });
@@ -131,7 +156,8 @@ const callPollinations = async () => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       messages: [
-        { role: "system", content: systemPrompt },
+        ...(systemPrompt ? [{ role: "system", content: systemPrompt }] : []),
+        ...chatHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.text })),
         { role: "user", content: prompt }
       ],
       model: "openai"

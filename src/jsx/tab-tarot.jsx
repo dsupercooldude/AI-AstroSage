@@ -16,7 +16,8 @@ window.TarotTab = ({ settings, emHash, pr }) => {
           if (lastLog.ts) {
              const logDate = new Date(lastLog.ts).toDateString();
              const today = new Date().toDateString();
-             if (logDate === today && lastLog.cards && lastLog.cards.length === 2) {
+             const isDaily = !lastLog.question;
+             if (logDate === today && lastLog.cards && lastLog.cards.length === 2 && isDaily) {
                 setAlreadyDrawnToday(true);
                 setQuestion(lastLog.question || "");
                 setSelectedMajor(lastLog.cards[0]);
@@ -76,9 +77,28 @@ window.TarotTab = ({ settings, emHash, pr }) => {
          const res = await window.executeMultiProviderAI(prompt, settings, "You are a mystical, wise Tarot Reader. Synthesize the meaning of the drawn cards in relation to the user's focus.");
          if (res && res.text) { ans = res.text; provider = res.provider; tokens = res.tokens; }
       }
-      if (!ans && window.runVedicRuleEngine) {
-         const dummyCh = { d1: { lagna: 'Aries' }, nak: 'Ashwini', pada: 1 };
-         ans = window.runVedicRuleEngine(prompt, {}, dummyCh, new Date(), "", false);
+      if (!ans) {
+         const logs = await window.VaultHistoryService.getLogs("tarot", emHash, pr?.id || "default");
+         const pastQueries = logs.filter(l => l.question).slice(-3).map(l => l.question).join(", ");
+         
+         const suitMeanings = {
+           'Cups': 'emotions, relationships, and intuition',
+           'Wands': 'passion, drive, and creativity',
+           'Swords': 'intellect, conflict, and truth',
+           'Pentacles': 'material wealth, career, and grounding'
+         };
+         const suitMeaning = selectedMinor.suit ? suitMeanings[selectedMinor.suit] || 'practical matters' : 'practical matters';
+         
+         ans = `**The Oracle's Vision (Offline Synthesis)**
+
+**Primary Force: ${selectedMajor.name} (${selectedMajor.reversed ? 'Reversed' : 'Upright'})**
+This major archetype represents the core karmic theme surrounding your query "${q}". ${selectedMajor.reversed ? 'Its energy is currently internalized, blocked, or requiring deep introspection.' : 'Its energy is expressing itself openly and directly in your life trajectory.'} ${pr?.name ? 'Aligned with your personal astrological profile (' + pr.name + ')' : ''}, it governs the overarching spiritual lesson you are currently navigating.
+
+**Practical Application: ${selectedMinor.name} (${selectedMinor.reversed ? 'Reversed' : 'Upright'})**
+This card highlights the day-to-day actions and immediate circumstances. Rooted in the realm of ${suitMeaning}, it suggests ${selectedMinor.reversed ? 'a need to reassess your approach or overcome internal resistance in this area' : 'a direct, actionable manifestation of this energy'}.
+
+**Continuous Path Synthesis**
+${pastQueries ? `Reflecting on your recent divinations ("${pastQueries}"), a continuous thread emerges. The transition toward ${selectedMajor.name} indicates an ongoing evolution of these past themes.` : `This draws a fresh energetic blueprint for your current situation.`} You are advised to ground the grand archetype of ${selectedMajor.name} using the practical tools offered by ${selectedMinor.name}. The stars and cards illuminate the path, but your free will takes the steps.`;
       }
       if (!ans) ans = "The Oracle is silent. The energies are shifting. Try again later.";
       
@@ -138,7 +158,7 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             {!selectedMajor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-indigo-500/40 bg-gradient-to-br from-indigo-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-indigo-500/20 flex items-center justify-center relative overflow-hidden group"
-                onClick={() => !alreadyDrawnToday && drawRandom(deckMajor, setSelectedMajor)}
+                onClick={() => { if (alreadyDrawnToday && !question.trim()) return; drawRandom(deckMajor, setSelectedMajor); }}
               >
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgMEw4IDhaTTAgOEw4IDBaIiBzdHJva2U9IiM0ZjQ2ZTUiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50"></div>
                 <Icon name="sparkle" size={24} className="text-indigo-500/50 group-hover:text-indigo-400 transition" />
@@ -147,11 +167,14 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             ) : (
               <div 
                 onClick={() => setSelectedMajor(null)}
-                className="w-32 h-48 rounded-xl border border-indigo-400 bg-indigo-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                className={`w-32 h-48 rounded-xl border border-indigo-400 bg-indigo-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(99,102,241,0.2)] relative overflow-hidden ${selectedMajor.reversed ? 'rotate-180' : ''}`}
               >
-                <Icon name="star" weight="duotone" size={28} className={`text-indigo-300 mb-2 ${selectedMajor.reversed ? 'rotate-180 opacity-70' : ''}`} />
-                <span className="font-serif text-sm text-indigo-100">{selectedMajor.name}</span>
-                <span className="text-[9px] font-mono text-indigo-300/70 uppercase mt-1 tracking-wider">{selectedMajor.reversed ? 'Reversed' : 'Upright'}</span>
+                <div className="absolute inset-0 bg-cover bg-center opacity-70 mix-blend-luminosity" style={{ backgroundImage: `url('https://image.pollinations.ai/prompt/Tarot%20card%20${encodeURIComponent(selectedMajor.name)}%20mystical%20illustration?width=256&height=384&nologo=true')` }}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10"></div>
+                <div className={`relative z-10 flex flex-col items-center ${selectedMajor.reversed ? 'rotate-180' : ''}`}>
+                  <span className="font-serif text-sm text-indigo-100 font-bold drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">{selectedMajor.name}</span>
+                  <span className="text-[9px] font-mono text-indigo-300 uppercase mt-1 tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">{selectedMajor.reversed ? 'Reversed' : 'Upright'}</span>
+                </div>
               </div>
             )}
           </div>
@@ -161,7 +184,7 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             {!selectedMinor ? (
               <div 
                 className="w-32 h-48 rounded-xl border border-pink-500/40 bg-gradient-to-br from-pink-900/40 to-black cursor-pointer hover:scale-105 transition shadow-lg shadow-pink-500/20 flex items-center justify-center relative overflow-hidden group"
-                onClick={() => !alreadyDrawnToday && drawRandom(deckMinor, setSelectedMinor)}
+                onClick={() => { if (alreadyDrawnToday && !question.trim()) return; drawRandom(deckMinor, setSelectedMinor); }}
               >
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjMDAwIiBmaWxsLW9wYWNpdHk9IjAiPjwvcmVjdD4KPHBhdGggZD0iTTAgMEw4IDhaTTAgOEw4IDBaIiBzdHJva2U9IiNlYzQ4OTkiIHN0cm9rZS13aWR0aD0iMSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSI+PC9wYXRoPgo8L3N2Zz4=')] opacity-50"></div>
                 <Icon name="diamonds-four" size={24} className="text-pink-500/50 group-hover:text-pink-400 transition" />
@@ -170,11 +193,14 @@ window.TarotTab = ({ settings, emHash, pr }) => {
             ) : (
               <div 
                 onClick={() => setSelectedMinor(null)}
-                className="w-32 h-48 rounded-xl border border-pink-400 bg-pink-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(236,72,153,0.2)]"
+                className={`w-32 h-48 rounded-xl border border-pink-400 bg-pink-900/30 cursor-pointer hover:border-red-500/50 transition flex flex-col items-center justify-center p-3 text-center shadow-[0_0_15px_rgba(236,72,153,0.2)] relative overflow-hidden ${selectedMinor.reversed ? 'rotate-180' : ''}`}
               >
-                <Icon name="diamonds-four" weight="duotone" size={28} className={`text-pink-300 mb-2 ${selectedMinor.reversed ? 'rotate-180 opacity-70' : ''}`} />
-                <span className="font-serif text-sm text-pink-100">{selectedMinor.name}</span>
-                <span className="text-[9px] font-mono text-pink-300/70 uppercase mt-1 tracking-wider">{selectedMinor.reversed ? 'Reversed' : 'Upright'}</span>
+                <div className="absolute inset-0 bg-cover bg-center opacity-70 mix-blend-luminosity" style={{ backgroundImage: `url('https://image.pollinations.ai/prompt/Tarot%20card%20${encodeURIComponent(selectedMinor.name)}%20mystical%20illustration?width=256&height=384&nologo=true')` }}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10"></div>
+                <div className={`relative z-10 flex flex-col items-center ${selectedMinor.reversed ? 'rotate-180' : ''}`}>
+                  <span className="font-serif text-sm text-pink-100 font-bold drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">{selectedMinor.name}</span>
+                  <span className="text-[9px] font-mono text-pink-300 uppercase mt-1 tracking-wider drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">{selectedMinor.reversed ? 'Reversed' : 'Upright'}</span>
+                </div>
               </div>
             )}
           </div>
@@ -184,12 +210,12 @@ window.TarotTab = ({ settings, emHash, pr }) => {
         <div className="flex justify-center mb-6">
           <button 
             onClick={getReading}
-            disabled={!selectedMajor || !selectedMinor || isDrawing || alreadyDrawnToday}
+            disabled={!selectedMajor || !selectedMinor || isDrawing || (alreadyDrawnToday && !question.trim())}
             style={(!selectedMajor || !selectedMinor || isDrawing) ? { backgroundColor: 'var(--theme-accent-faint)', color: 'rgba(255,255,255,0.3)' } : { backgroundColor: 'var(--theme-accent)', color: '#fff', boxShadow: '0 10px 25px var(--theme-accent-light)' }}
             className="px-8 py-3 rounded-full font-bold transition flex items-center justify-center"
           >
             {isDrawing ? <Icon name="spinner" className="animate-spin mr-2" size={18} /> : null}
-            {alreadyDrawnToday ? 'Daily Oracle Locked (Returns at Midnight)' : isDrawing ? 'Channeling Oracle...' : 'Read My Cards'}
+            {(alreadyDrawnToday && !question.trim()) ? 'Daily Oracle Locked (Type a Question to Ask Again)' : isDrawing ? 'Channeling Oracle...' : 'Read My Cards'}
           </button>
         </div>
 

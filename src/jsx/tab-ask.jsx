@@ -68,7 +68,11 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
     let ans = "";
     let usedProvider = set?.aiModel || "offline";
     try {
-      const relevantContext = h.slice(-8).map((item) => `Question: ${item.q}; Answer: ${String(item.a || "").slice(0, 400)}`).join(" | ");
+      const relevantContext = h.filter(x => x.p === pr?.id).slice(-4).map((item) => `Q: ${item.q}; A: ${String(item.a || "").slice(0, 100)}`).join(" | ");
+      const chatHistory = h.filter(x => x.p === pr?.id).slice(-10).flatMap(item => [
+         { role: 'user', text: item.q },
+         { role: 'model', text: item.a || "No response." }
+      ]);
       const normalizedPrompt = String(userPrompt).replace(/\s+/g, " ").trim();
       const containsProfileData = /profile|person|my name|my dob|my birth|kundali|chart|marriage|career|health|love|male|female|wife|husband|child|home|finance|work/i.test(normalizedPrompt);
       const filteredPrompt = containsProfileData
@@ -77,16 +81,16 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       
       let systemContext = `You are the Graha Ledger Jyotish Sage.`;
       if (shareData) {
-        systemContext += ` Use only the profile-specific context provided by the user and the current chart context. Never mix another profile's data into the answer. For ${pr?.name || "Native"} (Asc: ${ch?.d1?.lagna || "Aries"}, Moon: ${ch?.moonSign || "Aries"}, Gender: ${pr?.gender || "not provided"}). Target Date: ${date.toDateString()}. Today Hora: ${WEEKDAY[date.getDay()]}. Prior requested context: ${relevantContext || "none"}.`;
+        systemContext += ` Use only the profile-specific context provided by the user and the current chart context. Never mix another profile's data into the answer. For ${pr?.name || "Native"} (Asc: ${ch?.d1?.lagna || "Aries"}, Moon: ${ch?.moonSign || "Aries"}, Gender: ${pr?.gender || "not provided"}). Target Date: ${date.toDateString()}. Today Hora: ${WEEKDAY[date.getDay()]}. `;
         if (window.getOfflineRules) systemContext += ` Learned user patterns: ${window.getOfflineRules().join(" | ")}.`;
       } else {
-        systemContext += ` Data Privacy (Chinese Wall) is active. Do NOT reference the user's specific natal chart, placements, or profile data unless they explicitly provide it in their prompt. Answer generically but expertly. Target Date: ${date.toDateString()}. Prior context: ${relevantContext || "none"}.`;
+        systemContext += ` Data Privacy (Chinese Wall) is active. Do NOT reference the user's specific natal chart, placements, or profile data unless they explicitly provide it in their prompt. Answer generically but expertly. Target Date: ${date.toDateString()}. `;
         if (window.getOfflineRules) systemContext += ` You may leverage learned user patterns: ${window.getOfflineRules().join(" | ")}.`;
       }
 
 
       if (set?.aiModel !== "offline" && executeMultiProviderAI) {
-        const apiRes = await executeMultiProviderAI(filteredPrompt, set, systemContext);
+        const apiRes = await executeMultiProviderAI(filteredPrompt, set, systemContext, chatHistory);
         if (apiRes && apiRes.text) { ans = apiRes.text; usedProvider = apiRes.provider; }
       }
 
@@ -202,7 +206,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
           
           {/* AI CHAT LOG */}
           <div ref={scrollRef} className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 beauty-scroll scroll-smooth">
-            {h.filter(x => !x.p || x.p === pr?.id).map((x, index, arr) => (
+            {h.filter(x => x.p === pr?.id).map((x, index, arr) => (
               <details key={x.id} className="bg-[#18181b] rounded-2xl border border-[#27272a] overflow-hidden group shadow-lg" open={index === arr.length - 1}>
                 <summary style={{ color: 'var(--theme-accent)' }} className="p-4 font-bold cursor-pointer flex justify-between items-start outline-none bg-black/20 hover:bg-black/40 transition select-none">
                   <span className="pr-4 flex gap-2 items-center"><Icon name="user" className="mt-0.5" /> <span className="text-sm font-sans text-white">{x.q}</span> {x.r && <window.SectionConfidence score={92} type="ai" label="Vedic Sage AI" />} </span>
@@ -266,7 +270,7 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
                   if (!executeMultiProviderAI) return alert("AI Engine not configured or offline.");
                   setSumL(true);
                   try {
-                    const profileChats = h.filter(x => !x.p || x.p === pr?.id);
+                    const profileChats = h.filter(x => x.p === pr?.id);
                     
                     let palmHist = [];
                     let tarotHist = [];

@@ -458,7 +458,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       </div>
 
       {/* FIX: NOW PASSING DOB, TARGET DATE, AND UTC TO TRIGGER THE TRUE SINE WAVES */}
-      {window.BiocycleWidget && <window.BiocycleWidget dob={pr.dob} targetDate={date} utcOffset={pr.utcOffset} />}
+      {window.BiocycleWidget && <window.BiocycleWidget dob={pr.dob} targetDate={date} utcOffset={pr.utcOffset} ch={ch} pr={pr} />}
     </div>
   );
 };
