@@ -14,6 +14,15 @@ import './js/calendar.js';
 import App from './App.tsx';
 import './index.css';
 
+// Forcefully unregister any aggressive development service workers to prevent cache locking
+if ('serviceWorker' in navigator && import.meta.env.DEV) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
