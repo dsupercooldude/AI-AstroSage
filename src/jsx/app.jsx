@@ -64,6 +64,7 @@ const bootInterval = setInterval(() => {
   }, [u]);
  const [ed, setEd] = useState(null); const [activeProfileId, setActiveProfileId] = useState(null); const [adminAuthOpen, setAdminAuthOpen] = useState(false); const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
       const [formData, setFormData] = useState({ name: "", dob: "2000-01-01", time: "12:00", place: "", lat: "", lon: "", utcOffset: "5.5", gotra: "", jaati: "", kulDevta: "", gramDevta: "", sthanDevta: "", sunOverride: "", moonOverride: "", ascOverride: "", associatedProfileId: "", associatedRelation: "" });
+      const [confirmDel, setConfirmDel] = useState(false);
       const settingsSaveChain = useRef(Promise.resolve());
 
       window.useIdleTimeout(() => { if (u) { try { localStorage.removeItem("gl_active_user"); } catch (e) {} setU(null); alert("Session timed out."); } }, 300000);
@@ -259,7 +260,7 @@ const bootInterval = setInterval(() => {
                 <form onClick={(e) => e.stopPropagation()} onSubmit={hSave} className="w-full max-w-md bg-[#18181b] rounded-3xl border border-[#27272a] p-6 space-y-4 max-h-[90vh] overflow-y-auto gl-fadein shadow-2xl relative custom-scrollbar">
                   <div className="flex justify-between items-center border-b border-[#27272a] pb-3">
                     <h3 className="text-base font-bold text-white tracking-tight">{formData.id ? "Modify Profile" : "Create Natal Profile"}</h3>
-                    {formData.id && ( <button type="button" onClick={() => { if(confirm("Delete this profile?")){ deleteProfile(formData.id); } }} className="text-[10px] text-red-400 font-mono border border-red-500/30 bg-red-500/10 px-2.5 py-1 rounded-lg hover:bg-red-500/20 transition">Delete</button> )}
+                    {formData.id && ( !confirmDel ? <button type="button" onClick={() => setConfirmDel(true)} className="text-[10px] text-red-400 font-mono border border-red-500/30 bg-red-500/10 px-2.5 py-1 rounded-lg hover:bg-red-500/20 transition">Delete</button> : <div className="flex gap-2"><button type="button" onClick={() => setConfirmDel(false)} className="text-[10px] text-white bg-slate-700 px-2.5 py-1 rounded-lg">Cancel</button><button type="button" onClick={() => { setConfirmDel(false); deleteProfile(formData.id); }} className="text-[10px] text-white font-bold bg-red-600 px-2.5 py-1 rounded-lg">Confirm Delete</button></div> )}
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1 block">Full Name</label>

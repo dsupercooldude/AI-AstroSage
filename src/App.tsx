@@ -173,6 +173,7 @@ export default function App() {
     gramDevta: "",
     sthanDevta: ""
   });
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const settingsSaveChain = useRef<Promise<any>>(Promise.resolve());
 
@@ -768,17 +769,35 @@ export default function App() {
                   {formData.id ? "Modify Astrological Profile" : "Create New Natal Profile"}
                 </h3>
                 {formData.id && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (confirm("Delete this profile from your vault?")) {
-                        handleDeleteProfile(formData.id);
-                      }
-                    }}
-                    className="text-[11px] text-red-400 font-mono border border-red-500/30 bg-red-500/10 px-2.5 py-1 rounded-lg hover:bg-red-500/20 transition"
-                  >
-                    Delete
-                  </button>
+                  !confirmDel ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDel(true)}
+                      className="text-[11px] text-red-400 font-mono border border-red-500/30 bg-red-500/10 px-2.5 py-1 rounded-lg hover:bg-red-500/20 transition"
+                    >
+                      Delete
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDel(false)}
+                        className="text-[11px] text-white bg-slate-700 px-2.5 py-1 rounded-lg hover:bg-slate-600 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmDel(false);
+                          handleDeleteProfile(formData.id);
+                        }}
+                        className="text-[11px] text-white font-bold bg-red-600 px-2.5 py-1 rounded-lg hover:bg-red-500 transition"
+                      >
+                        Confirm Delete
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
 
