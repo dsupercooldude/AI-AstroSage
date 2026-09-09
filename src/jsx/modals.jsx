@@ -259,6 +259,15 @@ window.SettingsModal = ({ u, settings, onClose, onUpdateSettings, onMfaSuccess }
   const [passkeyReady, setPasskeyReady] = useState(!!PasskeyAuth?.getRecord(u.emailHash));
   const [localSet, setLocalSet] = useState(settings || { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} });
 
+  useEffect(() => {
+    if (settings) {
+      setLocalSet(prev => {
+        // Only update token usage or non-interactive fields to prevent interrupting user typing
+        return { ...prev, tokenUsage: settings.tokenUsage };
+      });
+    }
+  }, [settings]);
+
   const enableMFA = () => {
     if (!window.OTPAuth) return alert("Authenticator library failed to load.");
     const secret = new window.OTPAuth.Secret({ size: 20 }).base32;

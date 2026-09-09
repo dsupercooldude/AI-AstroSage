@@ -203,9 +203,8 @@ const callHuggingFace = async (apiKey) => {
         const txt = await target.fn(target.key);
         if (txt) {
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = prov ? prov.id : "ai";
+          window.lastAIProvider = target.id;
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: target.id, tokens } }));
-          window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: target.id, tokens } }));
           return { text: txt, provider: target.id, tokens };
         }
       } catch (err) {
@@ -217,27 +216,51 @@ const callHuggingFace = async (apiKey) => {
   
   const availableProviders = providers.filter((prov) => prov.key || prov.id === "free-ai");
   const cursorKey = "gl_ai_provider_cursor";
+  const cooldownKey = "gl_ai_cooldowns";
   let cursor = 0;
-  try { cursor = Number.parseInt(localStorage.getItem(cursorKey) || "0", 10) || 0; } catch (e) {}
+  let cooldowns = {};
   
-  const rotatedProviders = availableProviders.length ? availableProviders.map((_, index) => availableProviders[(cursor + index) % availableProviders.length]) : [];
+  try { 
+    cursor = Number.parseInt(localStorage.getItem(cursorKey) || "0", 10) || 0; 
+    cooldowns = JSON.parse(localStorage.getItem(cooldownKey) || "{}");
+  } catch (e) {}
+
+  const now = Date.now();
+  Object.keys(cooldowns).forEach(k => {
+     if (now > cooldowns[k]) delete cooldowns[k];
+  });
+  
+  let rotatedProviders = availableProviders.length ? availableProviders.map((_, index) => availableProviders[(cursor + index) % availableProviders.length]) : [];
+  
+  // Optimize routing: Deprioritize engines currently serving a cooldown penalty
+  rotatedProviders.sort((a, b) => {
+     const aPenalty = cooldowns[a.id] ? 1 : 0;
+     const bPenalty = cooldowns[b.id] ? 1 : 0;
+     return aPenalty - bPenalty;
+  });
   
   for (const prov of rotatedProviders) {
       try {
         const txt = await prov.fn(prov.key);
         if (txt) {
-          try { localStorage.setItem(cursorKey, String((availableProviders.findIndex((item) => item.id === prov.id) + 1) % availableProviders.length)); } catch (e) {}
+          try { 
+              localStorage.setItem(cursorKey, String((availableProviders.findIndex((item) => item.id === prov.id) + 1) % availableProviders.length)); 
+              delete cooldowns[prov.id];
+              localStorage.setItem(cooldownKey, JSON.stringify(cooldowns));
+          } catch (e) {}
+          
           window.lastAIProviderErrors = failures;
           
           const tokens = Math.ceil((prompt.length + txt.length) / 4);
-          window.lastAIProvider = prov ? prov.id : "ai";
+          window.lastAIProvider = prov.id;
           window.dispatchEvent(new CustomEvent('aiTokenUsage', { detail: { engine: prov.id, tokens } }));
-          window.dispatchEvent(new CustomEvent("aiTokenUsage", { detail: { engine: prov.id, tokens } }));
           return { text: txt, provider: prov.id, tokens };
         }
       } catch (err) {
         failures.push(`${prov.id}: ${err.message}`);
-        console.warn(`Provider ${prov.id} failed, trying next...`, err);
+        console.warn(`Provider ${prov.id} failed, applying 60s cooldown and cascading to next...`, err);
+        cooldowns[prov.id] = now + 60000;
+        try { localStorage.setItem(cooldownKey, JSON.stringify(cooldowns)); } catch (e) {}
       }
   }
 

@@ -236,9 +236,9 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       {/* CHART KUNDALI ENGINE */}
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl relative overflow-visible transition hover:border-[#3f3f46]">
         <div className="flex justify-between items-center mb-6 relative z-20 gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{kundaliTitle}</div>
-            <div className="flex gap-1.5 bg-[#09090b] rounded-xl border border-[#27272a] p-1">
+            <div className="flex flex-wrap gap-1.5 bg-[#09090b] rounded-xl border border-[#27272a] p-1">
               {[
     { id: "d1", label: "D1 Lagna" },
     { id: "chalit", label: "Chalit" },

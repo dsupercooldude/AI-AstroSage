@@ -70,9 +70,9 @@ window.RemediesTab = ({ pr, ch, date }) => {
           <CheckItem id={`${keyPrefix}_mantra`} label={`Mantra: ${info.beej}`} checked={checklist[`${keyPrefix}_mantra`]} onToggle={() => toggleCheck(`${keyPrefix}_mantra`)} />
           <CheckItem id={`${keyPrefix}_charity`} label={`Donation: ${info.charity}`} checked={checklist[`${keyPrefix}_charity`]} onToggle={() => toggleCheck(`${keyPrefix}_charity`)} />
           <CheckItem id={`${keyPrefix}_action`} label={`Action: ${info.action}`} checked={checklist[`${keyPrefix}_action`]} onToggle={() => toggleCheck(`${keyPrefix}_action`)} />
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg border border-white/5 mt-2">
-            <div className="w-3 h-3 rounded-full" style={{backgroundColor: info.color}}></div>
-            <span className="text-xs text-slate-300">Auspicious Gem/Color: <strong className="text-white">{info.gem}</strong></span>
+          <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-white/5 rounded-lg border border-white/5 mt-2">
+            <div className="w-3 h-3 rounded-full shrink-0" style={{backgroundColor: info.color}}></div>
+            <span className="text-xs text-slate-300">Auspicious Gem/Color: <strong className="text-white">{info.gem}</strong> <span className="text-[10px] font-mono text-slate-500 uppercase">({info.color})</span></span>
           </div>
         </div>
       </div>

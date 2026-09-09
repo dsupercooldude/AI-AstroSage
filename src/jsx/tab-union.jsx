@@ -135,11 +135,18 @@ window.CompatTab = ({ prs, chs, settings }) => {
                     
                     let ans = "";
                     if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
-                        const apiRes = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic relationship astrologer.");
-                        if (apiRes && apiRes.text) { ans = apiRes.text; setAiProvider(apiRes.provider); setTokenUsage(apiRes.tokens || Math.floor(ans.length * 0.3)); }
+                        try {
+                            const apiRes = await window.executeMultiProviderAI(prompt, settings, "You are an expert Vedic relationship astrologer.");
+                            if (apiRes && apiRes.text) { ans = apiRes.text; setAiProvider(apiRes.provider); setTokenUsage(apiRes.tokens || Math.floor(ans.length * 0.3)); }
+                        } catch (apiErr) {
+                            console.warn("API AI failed, falling back to offline", apiErr);
+                            ans = window.runVedicRuleEngine(prompt, p1, c1, new Date(), "", false);
+                            setAiProvider("offline");
+                        }
                     }
                     if (!ans) {
                         ans = window.runVedicRuleEngine(prompt, p1, c1, new Date(), "", false);
+                        setAiProvider("offline");
                     }
                     
                     if (ans) {
@@ -164,10 +171,10 @@ window.CompatTab = ({ prs, chs, settings }) => {
             <p className="text-sm t85 leading-relaxed font-mono">{levelText}</p>
           ) : (
             <div className="text-sm t85 leading-relaxed font-mono space-y-2 whitespace-pre-wrap">
-              {aiAnalysis}
-              {tokenUsage && (
+              {window.formatMarkdown ? window.formatMarkdown(aiAnalysis) : aiAnalysis}
+              {tokenUsage !== null && (
                 <div className="mt-3 text-[9px] text-pink-400/70 border-t border-[#27272a] pt-2 text-right uppercase tracking-widest font-bold">
-                   <window.Icon.ShieldCheck size={12} className="inline mr-1" /> {aiProvider === "offline" ? "AI" : aiProvider + " Engine"} - 95% Confidence | {tokenUsage} Tokens
+                   <window.Icon.ShieldCheck size={12} className="inline mr-1" /> {aiProvider === "offline" || !aiProvider ? "Offline Rule Engine" : aiProvider + " Engine"} - 95% Confidence | {tokenUsage || 0} Tokens
                 </div>
               )}
             </div>
@@ -219,7 +226,42 @@ window.CompatTab = ({ prs, chs, settings }) => {
             </tbody>
           </table>
         </div>
+        
+        {/* ASHTAKOOT REMEDIES */}
+        {Object.entries(match.details || {}).some(([k,v]) => (Number(v) / (detailMap[k]?.max || 1)) < 0.5) && (
+          <div className="p-5 border-t border-[#27272a] bg-[#09090b]">
+            <h4 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+              <window.Icon name="warning-circle" size={14} /> Recommended Remedies for Low Matches
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {Object.entries(match.details || {})
+                .filter(([k,v]) => (Number(v) / (detailMap[k]?.max || 1)) < 0.5)
+                .map(([k,v]) => {
+                  const remedies = {
+                    Nadi: "Maha Mrityunjaya Mantra chanting or donating to healthcare causes to balance health and lineage energy.",
+                    Bhakoot: "Vishnu Sahasranama chanting or fasting on Thursdays to harmonize life direction.",
+                    Gana: "Donating sweets on Thursdays or adopting a shared meditative practice to align temperaments.",
+                    Maitri: "Joint charity or serving a common spiritual cause to foster deep friendship and trust.",
+                    Yoni: "Practicing open communication, honoring physical boundaries, and meditating on Venus.",
+                    Tara: "Performing Rudrabhishekam or seeking elderly blessings to align Nakshatra timing.",
+                    Vashya: "Practicing active listening and releasing ego-driven control in daily interactions.",
+                    Varna: "Engaging in shared philosophical or spiritual studies to harmonize core values."
+                  };
+                  return (
+                    <div key={k} className="bg-black/50 border border-[#27272a] rounded-xl p-3 flex gap-3 items-start">
+                      <div className="mt-0.5 text-amber-400 shrink-0"><window.Icon name="sparkle" size={14} /></div>
+                      <div>
+                        <div className="text-[10px] font-mono text-white/50 uppercase tracking-widest mb-1">{k} Dosha Remedy</div>
+                        <div className="text-xs text-white/80 leading-relaxed font-mono">{remedies[k]}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
+
       <window.RelationshipGraph prs={prs} chs={chs} />
     </div>
   );

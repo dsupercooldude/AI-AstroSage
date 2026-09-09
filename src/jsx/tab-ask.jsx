@@ -90,8 +90,12 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
 
 
       if (set?.aiModel !== "offline" && executeMultiProviderAI) {
-        const apiRes = await executeMultiProviderAI(filteredPrompt, set, systemContext, chatHistory);
-        if (apiRes && apiRes.text) { ans = apiRes.text; usedProvider = apiRes.provider; }
+        try {
+            const apiRes = await executeMultiProviderAI(filteredPrompt, set, systemContext, chatHistory);
+            if (apiRes && apiRes.text) { ans = apiRes.text; usedProvider = apiRes.provider; }
+        } catch (apiErr) {
+            console.warn("API AI failed, falling back to offline", apiErr);
+        }
       }
 
       if (!ans && runVedicRuleEngine) {

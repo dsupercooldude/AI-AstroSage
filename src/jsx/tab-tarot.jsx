@@ -74,8 +74,12 @@ window.TarotTab = ({ settings, emHash, pr }) => {
       let provider = "offline";
       let tokens = 0;
       if (settings?.aiModel !== "offline" && window.executeMultiProviderAI) {
-         const res = await window.executeMultiProviderAI(prompt, settings, "You are a mystical, wise Tarot Reader. Synthesize the meaning of the drawn cards in relation to the user's focus.");
-         if (res && res.text) { ans = res.text; provider = res.provider; tokens = res.tokens; }
+         try {
+             const res = await window.executeMultiProviderAI(prompt, settings, "You are a mystical, wise Tarot Reader. Synthesize the meaning of the drawn cards in relation to the user's focus.");
+             if (res && res.text) { ans = res.text; provider = res.provider; tokens = res.tokens; }
+         } catch (e) {
+             console.warn("Tarot API failed, using offline", e);
+         }
       }
       if (!ans) {
          const logs = await window.VaultHistoryService.getLogs("tarot", emHash, pr?.id || "default");
