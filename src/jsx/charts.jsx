@@ -39,13 +39,13 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
   };
 
   return (
-    <div className="flex flex-wrap lg:flex-nowrap gap-6 w-full justify-center items-start">
+    <div className="flex flex-wrap lg:flex-nowrap gap-6 w-full justify-center items-start notranslate" translate="no">
       <div className="flex flex-col items-center justify-center p-6 bg-black/30 rounded-2xl border border-[#27272a] shadow-inner w-full max-w-lg mx-auto shrink-0">
         <div className="text-center font-serif text-lg text-amber-200 mb-6">{ac.lagna} Lagna Chart</div>
 
         {/* NORTH INDIAN CHART (DIAMOND SVG) */}
         {st.includes("north") && (
-          <div className="relative w-full max-w-[320px] aspect-square border-2 border-amber-400/50 bg-black/60 rounded p-2">
+          <div className="relative w-full max-w-[320px] aspect-square border-2 border-amber-400/50 bg-black/60 rounded p-2 notranslate" translate="no">
             <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full stroke-amber-400/40" strokeWidth="0.5" fill="none">
               <line x1="0" y1="0" x2="100" y2="100" /><line x1="100" y1="0" x2="0" y2="100" />
               <polygon points="50,0 100,50 50,100 0,50" />
@@ -68,6 +68,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
                 };
                 const pos = positions[h];
                 const isHovered = hoveredHouse === h;
+                const houseSign = ac.houses?.[h] ? ac.houses[h].slice(0, 3) : "";
                 return (
                   <div key={h} className="absolute w-16 h-16 flex flex-col items-center justify-center cursor-pointer transition-all" 
                     style={{
@@ -81,7 +82,7 @@ window.KundaliRenderer = ({ ac, ch, kpTable, style, titleDesc, isExpert, isKpVie
                     onMouseEnter={() => setHoveredHouse(h)}
                   >
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded border border-amber-400/50">{h}</div>
-                    <div className="t50 mb-0.5 text-[7px]">{ac.houses[h].slice(0,3)}</div>
+                    <div className="t50 mb-0.5 text-[7px]">{houseSign}</div>
                     <div className="flex flex-wrap justify-center gap-1.5 leading-tight">{getHousePlanets(h).map(renderPlanet)}</div>
                     {isHovered && <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[7px] px-2 py-1 rounded whitespace-nowrap border border-white/20">{houseMeanings[h]}</div>}
                   </div>

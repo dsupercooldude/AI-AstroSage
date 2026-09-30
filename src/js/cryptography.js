@@ -83,7 +83,15 @@ window.CryptoUtils = {
         bundle.set(ephemPubArray, 14);
         bundle.set(cipherArray, 14 + ephemPubArray.length);
         
-        const b64 = btoa(String.fromCharCode(...bundle));
+        let bundleBinary = '';
+        const chunkSz = 8192;
+        for (let i = 0; i < bundle.length; i += chunkSz) {
+            const sub = bundle.subarray(i, Math.min(i + chunkSz, bundle.length));
+            for (let j = 0; j < sub.length; j++) {
+                bundleBinary += String.fromCharCode(sub[j]);
+            }
+        }
+        const b64 = btoa(bundleBinary);
         return "ECIES:" + b64;
     },
 

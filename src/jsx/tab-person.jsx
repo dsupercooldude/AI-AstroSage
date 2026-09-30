@@ -2,7 +2,16 @@
 var React = window.React;
 var { useState, useEffect, useRef } = window.React;
 
-window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf }) => {
+window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf, lang }) => {
+  const [currentLang, setCurrentLang] = useState(() => lang || (window.getLanguage ? window.getLanguage() : "en"));
+  useEffect(() => {
+    const handleLangChange = (e) => setCurrentLang(e.detail || (window.getLanguage ? window.getLanguage() : "en"));
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => window.removeEventListener('languageChanged', handleLangChange);
+  }, []);
+  const activeLang = lang || currentLang;
+  const tr = (k, def) => (window.t ? window.t(k, activeLang, def) : (def || k));
+
   const [chartStyle, setChartStyle] = useState(() => (settings?.kundaliStyle || "north").toUpperCase());
   const [showStyleMenu, setShowStyleMenu] = useState(false);
   const [expandedDasha, setExpandedDasha] = useState(null);
@@ -78,7 +87,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
     }
   }, [ch, date]);
 
-  if (!ch) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
+  if (!ch || !pr) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
 
   const weekday = window.WEEKDAY[date.getDay()];
   const gochara = window.generateDeepGochara ? window.generateDeepGochara(ch, ch.d1?.lagna || "Aries", date, weekday, bioScores || { p: 0, e: 0, i: 0 }) : {};
@@ -133,9 +142,9 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
         <div>
           <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-            Astrological Dossier
+            {tr('astrologicalDossier', 'Astrological Dossier')}
           </div>
-          <h2 className="flex justify-between items-center w-full text-2xl sm:text-3xl text-white font-bold tracking-tight"><span>{pr.name}</span> <window.SectionConfidence score={99} type="math" label="Vedic Math" /></h2>
+          <h2 className="flex justify-between items-center w-full text-2xl sm:text-3xl text-white font-bold tracking-tight"><span>{pr.name}</span> <window.SectionConfidence score={99} type="math" label={tr('vedicMath', 'Vedic Math')} /></h2>
           <div className="text-xs text-slate-400 font-mono mt-1 flex flex-wrap items-center gap-2">
             <span className="bg-[#09090b] px-2 py-0.5 rounded border border-[#27272a]">{pr.dob}</span>
             <span className="bg-[#09090b] px-2 py-0.5 rounded border border-[#27272a]">{pr.time}</span>
@@ -148,23 +157,23 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           )}
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.dispatchEvent(new CustomEvent('generate-pdf'))} title="Export PDF" className="w-10 h-10 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center border border-green-500/20 hover:bg-green-500/20 transition shadow-lg">
+          <button onClick={() => window.dispatchEvent(new CustomEvent('generate-pdf'))} title={tr('exportPdf', 'Export PDF')} className="w-10 h-10 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center border border-green-500/20 hover:bg-green-500/20 transition shadow-lg">
             <i className="ph ph-file-pdf text-lg"></i>
           </button>
-          <button onClick={() => onEdit(pr)} title="Edit Profile" className="w-10 h-10 rounded-xl bg-[#09090b] text-slate-300 flex items-center justify-center border border-[#27272a] hover:bg-[#27272a] transition shadow-lg">
+          <button onClick={() => onEdit(pr)} title={tr('editProfile', 'Edit Profile')} className="w-10 h-10 rounded-xl bg-[#09090b] text-slate-300 flex items-center justify-center border border-[#27272a] hover:bg-[#27272a] transition shadow-lg">
             <i className="ph ph-pencil-simple text-lg"></i>
           </button>
         </div>
       </div>
 
-            {/* DAILY AFFIRMATION */}
+      {/* DAILY AFFIRMATION */}
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-5 shadow-2xl flex items-center gap-4 relative z-20 transition hover:border-[#3f3f46]">
         <div className="w-11 h-11 rounded-2xl border border-pink-500/30 flex items-center justify-center text-pink-400 bg-pink-500/10 shadow-lg shadow-pink-500/20 shrink-0">
           <i className="ph ph-sparkle text-xl"></i>
         </div>
         <div>
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-             Daily Affirmation <span className="bg-[#09090b] px-1.5 py-0.5 rounded border border-[#27272a] text-[9px] text-pink-400">Moon in {ch.moonSign}</span>
+             {tr('dailyAffirmation', 'Daily Affirmation')} <span className="bg-[#09090b] px-1.5 py-0.5 rounded border border-[#27272a] text-[9px] text-pink-400">{tr('moonIn', 'Moon in')} {tr(ch.moonSign, ch.moonSign)}</span>
           </div>
           <div className="text-sm md:text-base text-slate-200 font-serif italic tracking-tight">"{affirmationsByMoon[ch.moonSign] || 'I embrace the journey of my soul with grace and courage.'}"</div>
         </div>
@@ -177,12 +186,12 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
             <i className="ph ph-clock-counter-clockwise text-xl"></i>
           </div>
           <div>
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">Active Prediction Horizon</div>
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-0.5">{tr('activePredictionHorizon', 'Active Prediction Horizon')}</div>
             <div className="text-lg text-white font-bold tracking-tight">{weekday}, {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
           </div>
         </div>
         <div className="flex flex-wrap justify-center items-center gap-1.5 bg-[#09090b] p-1.5 rounded-2xl border border-[#27272a] w-full xl:w-auto">
-          {[{ l: "-1M", d: -30 }, { l: "-1W", d: -7 }, { l: "-1D", d: -1 }, { l: "Today", d: 0 }, { l: "+1D", d: 1 }, { l: "+1W", d: 7 }, { l: "+1M", d: 30 }].map(btn => (
+          {[{ l: "-1M", d: -30 }, { l: "-1W", d: -7 }, { l: "-1D", d: -1 }, { l: tr('today', 'Today'), d: 0 }, { l: "+1D", d: 1 }, { l: "+1W", d: 7 }, { l: "+1M", d: 30 }].map(btn => (
             <button key={btn.l} onClick={() => { const nd = new Date(date); nd.setDate(nd.getDate() + btn.d); btn.d === 0 ? setDate(new Date()) : setDate(nd); }} className={`px-3 py-1.5 rounded-xl text-[11px] font-bold font-mono transition ${btn.d === 0 ? 'bg-white text-black font-bold shadow' : 'bg-transparent text-slate-400 hover:text-white hover:bg-[#27272a]'}`}>
               {btn.l}
             </button>
@@ -194,7 +203,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       <div className="bg-[#18181b] p-6 rounded-3xl border border-[#27272a] shadow-2xl transition hover:border-[#3f3f46]">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-          <i className="ph ph-sparkle text-indigo-400"></i> AI Jyotish Engine Synthesis
+          <i className="ph ph-sparkle text-indigo-400"></i> {tr('aiSynthesis', 'AI Jyotish Engine Synthesis')}
         </h3>
         {!isExpert ? (
           <div className="space-y-3 text-xs text-slate-300 leading-relaxed font-mono">
@@ -220,7 +229,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       )}
 
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl space-y-3 transition hover:border-[#3f3f46]">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Lagna & Chalit Architectural Reading</span> <window.SectionConfidence score={92} type="ai" label="AI Synthesis" /></h3>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Lagna & Chalit Architectural Reading</span> <window.SectionConfidence score={92} type="ai" label={tr('aiSynthesis', 'AI Synthesis')} /></h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-[#09090b] p-4 rounded-2xl border border-[#27272a] text-xs text-slate-300 leading-relaxed font-mono">
             <span className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider block mb-1">Lagna Core</span>
@@ -240,13 +249,14 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
             <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{kundaliTitle}</div>
             <div className="flex flex-wrap gap-1.5 bg-[#09090b] rounded-xl border border-[#27272a] p-1">
               {[
-    { id: "d1", label: "D1 Lagna" },
-    { id: "chalit", label: "Chalit" },
-    { id: "d9", label: "D9 Navamsha" },
-    { id: "d3", label: "D3 Drekkana" },
-    { id: "d7", label: "D7 Saptamsha" },
-    { id: "d10", label: "D10 Dashamsha" }, { id: "kp", label: "KP System" }
-  ].map((view) => (
+                { id: "d1", label: tr("lagnaD1", "D1 Lagna") },
+                { id: "chalit", label: tr("bhavaChalit", "Chalit") },
+                { id: "d9", label: tr("navamshaD9", "D9 Navamsha") },
+                { id: "d3", label: tr("drekkanaD3", "D3 Drekkana") },
+                { id: "d7", label: tr("saptamshaD7", "D7 Saptamsha") },
+                { id: "d10", label: tr("dashamshaD10", "D10 Dashamsha") },
+                { id: "kp", label: tr("kpSystem", "KP System") }
+              ].map((view) => (
                 <button
                   key={view.id}
                   onClick={() => setKundaliView(view.id)}
@@ -258,7 +268,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
           </div>
           <div className="flex gap-2">
             <button onClick={() => setIsExpert(!isExpert)} className={`px-3.5 py-1.5 rounded-xl border border-[#27272a] transition text-[10px] font-mono font-bold uppercase tracking-widest ${isExpert ? 'bg-indigo-600 text-white' : 'bg-[#09090b] text-slate-400 hover:text-white'}`}>
-              {isExpert ? "Expert Mode" : "Basic Mode"}
+              {isExpert ? tr('expertMode', 'Expert Mode') : tr('basicMode', 'Basic Mode')}
             </button>
             <div className="relative">
               <button onClick={() => setShowStyleMenu(!showStyleMenu)} className="flex items-center gap-2 bg-[#09090b] px-3.5 py-1.5 rounded-xl border border-[#27272a] hover:border-[#3f3f46] transition">
@@ -287,7 +297,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl transition hover:border-[#3f3f46]">
           <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Vimshottari Dasha Drilldown</span> <window.SectionConfidence score={100} type="math" label="Calculation Engine" /></h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>{tr('vimshottariDasha', 'Vimshottari Dasha Drilldown')}</span> <window.SectionConfidence score={100} type="math" label={tr('vedicMath', 'Vedic Math')} /></h3>
           </div>
           
           {timelineData && (
@@ -368,7 +378,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
 
         <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl transition hover:border-[#3f3f46]">
           <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Shadbala & Planetary Power</span> <window.SectionConfidence score={100} type="math" label="Vedic Math" /></h3>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>{tr('shadbalaPower', 'Shadbala & Planetary Power')}</span> <window.SectionConfidence score={100} type="math" label={tr('vedicMath', 'Vedic Math')} /></h3>
           </div>
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar" style={customScrollStyle}>
             {Object.entries(ch.shadbala || {}).sort((a,b)=>b[1]-a[1]).map(([planet, score]) => {
@@ -378,7 +388,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
                 <div key={planet} className="relative bg-[#09090b] p-3 rounded-2xl border border-[#27272a]">
                   <div className="flex justify-between text-[11px] font-mono mb-1.5">
                     <span className="font-bold flex items-center gap-1.5" style={{ color: pInfo?.color || '#818cf8' }}>
-                      <span className="text-xs">{pInfo?.symbol}</span> {planet}
+                      <span className="text-xs">{pInfo?.symbol}</span> {tr(planet, planet)}
                     </span>
                     <span className="text-slate-200 font-bold">{(score / 60).toFixed(1)} Rupas</span>
                   </div>
@@ -396,7 +406,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       {/* GOCHARA / TRANSITS */}
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl transition hover:border-[#3f3f46]">
         <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>Gochara (Transit) Impact</span> <window.SectionConfidence score={95} type="ai" label="AI Mapping" /></h3>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between w-full"><span>{tr('transits', 'Gochara (Transit) Impact')}</span> <window.SectionConfidence score={95} type="ai" label={tr('aiSynthesis', 'AI Mapping')} /></h3>
           <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">{weekday}, {date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
         </div>
         {!isExpert && (
@@ -429,7 +439,7 @@ window.PersonTab = ({ pr, ch, date, setDate, settings, bioScores, onEdit, onPdf 
       <div className="bg-[#18181b] rounded-3xl border border-[#27272a] p-6 shadow-2xl mb-6 transition hover:border-[#3f3f46]">
         <div className="flex justify-between items-end mb-4 border-b border-[#27272a] pb-3">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <i className="flex justify-between items-center w-full ph ph-sparkle text-indigo-400"></i> Highly Personalized Remediation
+            <i className="ph ph-sparkle text-indigo-400"></i> {tr('remediation', 'Highly Personalized Remediation')}
           </h3>
           <span className="text-[10px] text-green-400 uppercase tracking-widest font-bold bg-green-500/10 px-2 py-0.5 rounded border border-green-500/20">● Chart Driven</span>
         </div>

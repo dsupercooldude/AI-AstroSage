@@ -18,7 +18,7 @@ window.RelationshipGraph = ({ prs, chs }) => {
 
     d3.select(d3Container.current).selectAll("*").remove();
 
-    const width = d3Container.current.clientWidth;
+    const width = d3Container.current.clientWidth || 600;
     const height = 400;
 
     const svg = d3.select(d3Container.current)

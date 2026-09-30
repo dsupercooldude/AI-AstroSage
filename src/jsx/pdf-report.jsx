@@ -24,7 +24,8 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
         
         try {
            const sumFile = await window.AppDB.getFile(`gl_profile_summary_${emHash}_${profile.id}.json`);
-           const sstr = typeof sumFile.content.summary === "string" ? await window.CryptoUtils.decrypt(sumFile.content.summary) : sumFile.content.summary;
+           const rawSum = sumFile?.content?.summary;
+           const sstr = typeof rawSum === "string" ? await window.CryptoUtils.decrypt(rawSum) : rawSum;
            if (sstr) setAskSummary(sstr);
            else setAskSummary("");
         } catch(e){
@@ -567,7 +568,10 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
       {/* ========================================== */}
             {(() => {
         try {
-          const savedPair = JSON.parse(localStorage.getItem('astrograh_union_pair') || '[]');
+          let savedPair = JSON.parse(localStorage.getItem('gl_union_pair') || localStorage.getItem('astrograh_union_pair') || '[]');
+          if ((!Array.isArray(savedPair) || savedPair.length < 2) && prs && prs.length >= 2) {
+            savedPair = [prs[0].id, prs[1].id];
+          }
           if (Array.isArray(savedPair) && savedPair.length === 2 && prs && chs) {
             const p1 = prs.find(p => p.id === savedPair[0]);
             const p2 = prs.find(p => p.id === savedPair[1]);
@@ -672,7 +676,7 @@ window.GhostPDFReport = React.forwardRef(({ emHash, profile, ch, bioScores, date
                   <div className="flex flex-wrap gap-4 mb-4">
                      {latest.cards && latest.cards.map((c, idx) => (
                         <div key={idx} className="bg-black/40 px-3 py-1.5 rounded-lg border border-[#27272a] text-sm text-amber-200 font-bold">
-                          {c.name} {c.isReversed ? "(Reversed)" : "(Upright)"}
+                          {c.name} {(c.reversed || c.isReversed) ? "(Reversed)" : "(Upright)"}
                         </div>
                      ))}
                   </div>

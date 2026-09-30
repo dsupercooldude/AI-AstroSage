@@ -1,8 +1,18 @@
 // src/jsx/tab-reports.jsx
 var React = window.React;
+var { useState, useEffect } = window.React;
 
-window.ReportsTab = ({ pr, ch, date }) => {
-  if (!ch || !ch.planetaryDegrees) return <div className="p-4 text-center text-sm t60">Calculating Astral Data...</div>;
+window.ReportsTab = ({ pr, ch, date, lang }) => {
+  const [currentLang, setCurrentLang] = useState(() => lang || (window.getLanguage ? window.getLanguage() : "en"));
+  useEffect(() => {
+    const handleLangChange = (e) => setCurrentLang(e.detail || (window.getLanguage ? window.getLanguage() : "en"));
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => window.removeEventListener('languageChanged', handleLangChange);
+  }, []);
+  const activeLang = lang || currentLang;
+  const tr = (k, def) => (window.t ? window.t(k, activeLang, def) : (def || k));
+
+  if (!ch || !ch.planetaryDegrees || !pr) return <div className="p-4 text-center text-sm t60">Calculating Astral Data...</div>;
 
   // CORE CALCULATIONS
   const details = window.calculatePlanetaryDetails ? window.calculatePlanetaryDetails(ch.d1?.signs || {}, ch.planetaryDegrees) : {};
@@ -52,7 +62,7 @@ window.ReportsTab = ({ pr, ch, date }) => {
       {/* 1. PLANETARY LEDGER TABLE */}
       <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col w-full">
         <div className="flex justify-between items-center w-full mb-4"><h3 className="font-serif text-base text-amber-200 flex items-center gap-2">
-          <i className="ph ph-planet" style={{ fontSize: 20 }}></i> Detailed Planetary Ledger & Longitudes</h3><window.SectionConfidence score={100} type="math" label="Vedic Math" /></div>
+          <i className="ph ph-planet" style={{ fontSize: 20 }}></i> {tr('planetaryLedger', 'Detailed Planetary Ledger & Longitudes')}</h3><window.SectionConfidence score={100} type="math" label={tr('vedicMath', 'Vedic Math')} /></div>
         <div className="overflow-x-auto mb-4 w-full">
           <table className="w-full text-xs font-mono text-left border-collapse">
             <thead>
@@ -69,8 +79,8 @@ window.ReportsTab = ({ pr, ch, date }) => {
                 const pInfo = window.PLANET_INFO[planet] || { color: "#FFF", symbol: "●" };
                 return (
                   <tr key={planet} className="hover:bg-white/5 transition">
-                    <td className="py-3 font-bold" style={{ color: pInfo.color }}>{pInfo.symbol} {planet}</td>
-                    <td className="py-3 t90">{data.rashi}</td>
+                    <td className="py-3 font-bold" style={{ color: pInfo.color }}>{pInfo.symbol} {tr(planet, planet)}</td>
+                    <td className="py-3 t90">{tr(data.rashi, data.rashi)}</td>
                     <td className="py-3 text-amber-200">{data.longitudeStr}</td>
                     <td className="py-3 t80">{data.nakshatra} (P-{data.pada})</td>
                     <td className="py-3 t60 text-[10px]">{data.status}</td>
@@ -92,35 +102,35 @@ window.ReportsTab = ({ pr, ch, date }) => {
         
         {/* 2. JAIMINI CHARA KARAKAS */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col h-full w-full">
-          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>Jaimini Chara Karakas</span> <window.SectionConfidence score={100} type="math" /></h3>
+          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>{tr('charaKarakas', 'Jaimini Chara Karakas')}</span> <window.SectionConfidence score={100} type="math" /></h3>
           <div className="space-y-2 font-mono text-xs mb-4 flex-grow">
             {Object.entries(jaimini).map(([karaka, planet]) => {
               const pInfo = window.PLANET_INFO[planet] || { color: "#FFF" };
               return (
                 <div key={karaka} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-[#27272a]">
                   <span className="t60">{karaka}</span>
-                  <span className="font-bold" style={{ color: pInfo.color }}>{planet}</span>
+                  <span className="font-bold" style={{ color: pInfo.color }}>{tr(planet, planet)}</span>
                 </div>
               );
             })}
           </div>
           <div className="bg-black/40 border border-[#27272a] rounded-xl p-4 text-xs t85 leading-relaxed shadow-inner">
             <strong className="text-amber-400 block mb-2">Your Personal Karmic Mission:</strong>
-            ● <strong>Your Soul Purpose (Atma Karaka):</strong> Because your highest degree planet is <strong style={{ color: window.PLANET_INFO[akPlanet]?.color }}>{akPlanet}</strong>, your ultimate destiny in this lifetime revolves around {soulLessons[akPlanet] || "discovering your unique path"}.<br/><br/>
-            ● <strong>Your Career Guide (Amatya Karaka):</strong> With <strong style={{ color: window.PLANET_INFO[amkPlanet]?.color }}>{amkPlanet}</strong> acting as your career minister, you will achieve your greatest worldly success by {careerPaths[amkPlanet] || "focusing on your innate talents"}.<br/><br/>
-            ● <strong>Your Partner (Dara Karaka):</strong> Your lowest degree planet is <strong style={{ color: window.PLANET_INFO[dkPlanet]?.color }}>{dkPlanet}</strong>, dictating that you attract and require long-term partners who heavily embody the traits of {dkPlanet}.
+            ● <strong>Your Soul Purpose (Atma Karaka):</strong> Because your highest degree planet is <strong style={{ color: window.PLANET_INFO[akPlanet]?.color }}>{tr(akPlanet, akPlanet)}</strong>, your ultimate destiny in this lifetime revolves around {soulLessons[akPlanet] || "discovering your unique path"}.<br/><br/>
+            ● <strong>Your Career Guide (Amatya Karaka):</strong> With <strong style={{ color: window.PLANET_INFO[amkPlanet]?.color }}>{tr(amkPlanet, amkPlanet)}</strong> acting as your career minister, you will achieve your greatest worldly success by {careerPaths[amkPlanet] || "focusing on your innate talents"}.<br/><br/>
+            ● <strong>Your Partner (Dara Karaka):</strong> Your lowest degree planet is <strong style={{ color: window.PLANET_INFO[dkPlanet]?.color }}>{tr(dkPlanet, dkPlanet)}</strong>, dictating that you attract and require long-term partners who heavily embody the traits of {tr(dkPlanet, dkPlanet)}.
           </div>
         </div>
 
         {/* 3. BALADI AVASTHAS */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl flex flex-col h-full w-full">
-          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>Planetary Baladi Avasthas</span> <window.SectionConfidence score={100} type="math" /></h3>
+          <h3 className="font-serif text-sm text-amber-200 mb-3 flex justify-between"><span>{tr('baladiAvasthas', 'Planetary Baladi Avasthas')}</span> <window.SectionConfidence score={100} type="math" /></h3>
           <div className="space-y-2 font-mono text-xs max-h-[220px] overflow-y-auto pr-1 mb-4 flex-grow beauty-scroll">
             {Object.entries(avasthas).map(([planet, avastha]) => {
               const pInfo = window.PLANET_INFO[planet] || { color: "#FFF" };
               return (
                 <div key={planet} className="flex justify-between items-center bg-black/30 px-3 py-2 rounded-xl border border-[#27272a]">
-                  <span style={{ color: pInfo.color }} className="font-bold">{planet}</span>
+                  <span style={{ color: pInfo.color }} className="font-bold">{tr(planet, planet)}</span>
                   <span className="t85 text-[11px]">{avastha}</span>
                 </div>
               );

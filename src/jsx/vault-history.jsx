@@ -7,13 +7,30 @@ window.VaultHistoryService = {
     if (!emHash || !profileId) return [];
     let allLogs = [];
     try {
+      if (window.AppDB && !window.AppDB.config) {
+        await window.AppDB.loadConfig();
+      }
+      if (!window.AppDB) return [];
+
+      const safeParse = (dec) => {
+        if (!dec) return [];
+        if (Array.isArray(dec)) return dec;
+        if (typeof dec === "string") {
+          if (dec.startsWith("ECIES_ERROR:")) return [];
+          try {
+            const p = JSON.parse(dec);
+            return Array.isArray(p) ? p : [];
+          } catch (e) { return []; }
+        }
+        return [];
+      };
+
       // 1. Fetch new logs
       const fileName = `gl_vault_${module}_${emHash}_${profileId}.json`;
       const hFile = await window.AppDB.getFile(fileName);
       if (hFile && hFile.content && hFile.content.logs) {
         const dec = typeof hFile.content.logs === "string" ? await window.CryptoUtils.decrypt(hFile.content.logs) : hFile.content.logs;
-        const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
-        allLogs = [...allLogs, ...parsed];
+        allLogs = [...allLogs, ...safeParse(dec)];
       }
       
       // 2. Fetch legacy logs for Tarot
@@ -21,8 +38,7 @@ window.VaultHistoryService = {
           const legFile = await window.AppDB.getFile(`gl_tarot_${emHash}_${profileId}.json`);
           if (legFile && legFile.content && legFile.content.history) {
               const dec = typeof legFile.content.history === "string" ? await window.CryptoUtils.decrypt(legFile.content.history) : legFile.content.history;
-              const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
-              allLogs = [...allLogs, ...parsed];
+              allLogs = [...allLogs, ...safeParse(dec)];
           }
       }
       // 3. Fetch legacy logs for Palmistry
@@ -30,8 +46,7 @@ window.VaultHistoryService = {
           const legFile = await window.AppDB.getFile(`gl_palmistry_analysis_${emHash}_${profileId}.json`);
           if (legFile && legFile.content && legFile.content.h) {
               const dec = typeof legFile.content.h === "string" ? await window.CryptoUtils.decrypt(legFile.content.h) : legFile.content.h;
-              const parsed = typeof dec === "string" ? JSON.parse(dec) : dec || [];
-              allLogs = [...allLogs, ...parsed];
+              allLogs = [...allLogs, ...safeParse(dec)];
           }
       }
       
@@ -39,7 +54,7 @@ window.VaultHistoryService = {
       allLogs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
       return allLogs;
     } catch (e) {
-      console.error("VaultHistory getLogs error", e);
+      console.warn("VaultHistory getLogs fallback", e);
       return allLogs;
     }
   },
@@ -47,12 +62,31 @@ window.VaultHistoryService = {
   async saveLog(module, emHash, profileId, logEntry) {
     if (!emHash || !profileId) return;
     try {
+      if (window.AppDB && !window.AppDB.config) {
+        await window.AppDB.loadConfig();
+      }
+      if (!window.AppDB) return null;
+
       const fileName = `gl_vault_${module}_${emHash}_${profileId}.json`;
-      const hFile = await window.AppDB.getFile(fileName);
+      let hFile = await window.AppDB.getFile(fileName);
+      if (!hFile || typeof hFile !== 'object') {
+        hFile = { content: {}, sha: null };
+      }
+      if (!hFile.content || typeof hFile.content !== 'object') {
+        hFile.content = {};
+      }
+
       let logs = [];
       if (hFile.content.logs) {
         const dec = typeof hFile.content.logs === "string" ? await window.CryptoUtils.decrypt(hFile.content.logs) : hFile.content.logs;
-        logs = typeof dec === "string" ? JSON.parse(dec) : dec || [];
+        if (Array.isArray(dec)) {
+          logs = dec;
+        } else if (typeof dec === "string" && !dec.startsWith("ECIES_ERROR:")) {
+          try {
+            const p = JSON.parse(dec);
+            if (Array.isArray(p)) logs = p;
+          } catch (e) {}
+        }
       }
       
       // Auto-generate AI summary if missing
@@ -75,7 +109,7 @@ window.VaultHistoryService = {
       logEntry.ts = Date.now();
       logs.push(logEntry);
       
-      hFile.content.logs = await window.CryptoUtils.encrypt(logs);
+      hFile.content.logs = window.CryptoUtils ? await window.CryptoUtils.encrypt(logs) : JSON.stringify(logs);
       await window.AppDB.saveFile(fileName, hFile.content, hFile.sha);
       return logs;
     } catch (e) {

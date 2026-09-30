@@ -8,7 +8,7 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt, chatHisto
   const preferredModel = settings?.aiModel || "auto";
   const failures = [];
 
-  const callGemini = async (apiKey) => {
+  const callGemini = async (apiKey, modelName = "gemini-2.5-flash") => {
     const contents = chatHistory.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
@@ -21,7 +21,7 @@ window.executeMultiProviderAI = async (prompt, settings, systemPrompt, chatHisto
     if (systemPrompt && systemPrompt.trim() !== "") {
       body.systemInstruction = { role: "system", parts: [{ text: systemPrompt }] };
     }
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -186,7 +186,8 @@ const callHuggingFace = async (apiKey) => {
   };
 
   const providers = [
-    { id: "gemini", fn: callGemini, key: keys.gemini },
+    { id: "gemini", fn: (k) => callGemini(k, "gemini-2.5-flash"), key: keys.gemini },
+    { id: "gemini-pro", fn: (k) => callGemini(k, "gemini-2.5-pro"), key: keys.gemini },
     { id: "openai", fn: callOpenAI, key: keys.openai },
     { id: "groq", fn: callGroq, key: keys.groq },
     { id: "deepseek", fn: callDeepSeek, key: keys.deepseek },

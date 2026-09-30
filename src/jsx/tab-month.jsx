@@ -2,7 +2,7 @@
 var React = window.React;
 var { useState, useEffect } = window.React;
 
-window.MonthTab = ({ pr, ch }) => {
+window.MonthTab = ({ pr, ch, settings, emHash }) => {
   const [forecast, setForecast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -47,7 +47,7 @@ window.MonthTab = ({ pr, ch }) => {
     if (ch) fetchMonthlyAI();
   }, [ch]);
 
-  if (!ch) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
+  if (!ch || !pr) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
 
   return (
     <div className="space-y-6 pb-12 gl-fadein mt-4">

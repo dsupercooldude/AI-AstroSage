@@ -56,6 +56,10 @@ const SEED_PROFILES = [
   }
 ];
 
+if (typeof window !== 'undefined') {
+  (window as any).SEED_PROFILES = SEED_PROFILES;
+}
+
 
 const GoogleTranslate = () => {
   useEffect(() => {
@@ -120,8 +124,28 @@ export default function App() {
         return JSON.parse(sess);
       }
     } catch (e) {}
-    return null;
+    const defaultUser = {
+      email: "guest@grahaledger.vault",
+      emailHash: "guest_vault_default",
+      profiles: SEED_PROFILES,
+      settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} },
+      mfaEnabled: false
+    };
+    try { localStorage.setItem("gl_active_user", JSON.stringify(defaultUser)); } catch (e) {}
+    return defaultUser;
   });
+
+  const [lang, setLang] = useState<string>(() => (window as any).getLanguage ? (window as any).getLanguage() : "en");
+
+  useEffect(() => {
+    const handleLangChange = (e: any) => {
+      setLang(e.detail || ((window as any).getLanguage ? (window as any).getLanguage() : "en"));
+    };
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => window.removeEventListener('languageChanged', handleLangChange);
+  }, []);
+
+  const tr = (k: string, def?: string) => ((window as any).t ? (window as any).t(k, lang, def) : (def || k));
 
   const [date, setDate] = useState<Date>(new Date());
   const [showSettings, setShowSettings] = useState(false);
@@ -188,31 +212,38 @@ export default function App() {
           if (sess) {
             const pS = JSON.parse(sess);
             if (pS.emailHash && pS.emailHash !== "guest_vault_default") {
-              const vaultFile = await AppDB.getFile(`gl_vault_${pS.emailHash}.json`);
+              let vaultFile = await AppDB.getFile(`gl_vault_${pS.emailHash}.json`);
+              if (!vaultFile || typeof vaultFile !== 'object') vaultFile = { content: {}, sha: null };
+              if (!vaultFile.content || typeof vaultFile.content !== 'object') vaultFile.content = {};
               let pr = [];
               try {
-                const decodedProfiles = typeof vaultFile.content.profiles === "string" ? await CryptoUtils.decrypt(vaultFile.content.profiles) : vaultFile.content.profiles;
+                const rawProfiles = vaultFile.content.profiles;
+                const decodedProfiles = typeof rawProfiles === "string" ? await CryptoUtils.decrypt(rawProfiles) : rawProfiles;
                 pr = typeof decodedProfiles === "string" ? JSON.parse(decodedProfiles) : decodedProfiles || [];
               } catch (e) {}
               let se = {};
               try {
-                const decodedSettings = typeof vaultFile.content.settings === "string" ? await CryptoUtils.decrypt(vaultFile.content.settings) : vaultFile.content.settings;
+                const rawSettings = vaultFile.content.settings;
+                const decodedSettings = typeof rawSettings === "string" ? await CryptoUtils.decrypt(rawSettings) : rawSettings;
                 se = typeof decodedSettings === "string" ? JSON.parse(decodedSettings) : decodedSettings || {};
               } catch (e) {}
               
-              const activeProfiles = pr && pr.length ? pr : SEED_PROFILES;
+              const activeProfiles = (pr && pr.length) ? pr : ((Array.isArray(pS.profiles) && pS.profiles.length) ? pS.profiles : SEED_PROFILES);
+              const mergedSettings = {
+                aiModel: "auto",
+                monthSystem: "amanta",
+                kundaliStyle: "north",
+                ...(pS.settings || {}),
+                ...se,
+                apiKeys: { ...((pS.settings && pS.settings.apiKeys) || {}), ...((se as any)?.apiKeys || {}) }
+              };
               setUser({
                 email: pS.email,
                 emailHash: pS.emailHash,
                 profiles: activeProfiles,
-                settings: {
-                  aiModel: "auto",
-                  monthSystem: "amanta",
-                  kundaliStyle: "north",
-                  apiKeys: {},
-                  ...se
-                },
-                mfaEnabled: pS.mfaEnabled
+                settings: mergedSettings,
+                mfaEnabled: pS.mfaEnabled,
+                requiresPasswordChange: pS.requiresPasswordChange
               });
               if (activeProfiles.length) setActiveProfileId(activeProfiles[0].id);
             }
@@ -278,7 +309,7 @@ export default function App() {
         if (PDFValidator) {
           const validation = await PDFValidator.validate(el);
           if (!validation.valid) {
-            alert(`PDF layout validation notice:\n\n${PDFValidator.formatIssues(validation)}`);
+            console.warn(`PDF layout validation notice:\n\n${PDFValidator.formatIssues(validation)}`);
           }
         }
 
@@ -368,7 +399,9 @@ export default function App() {
 
     if (AppDB && CryptoUtils && user.emailHash && user.emailHash !== "guest_vault_default") {
       try {
-        const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+        let vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+        if (!vaultFile || typeof vaultFile !== 'object') vaultFile = { content: {}, sha: null };
+        if (!vaultFile.content || typeof vaultFile.content !== 'object') vaultFile.content = {};
         vaultFile.content.profiles = await CryptoUtils.encrypt(newProfiles);
         vaultFile.content.settings = vaultFile.content.settings || await CryptoUtils.encrypt(settings);
         await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
@@ -387,7 +420,9 @@ export default function App() {
 
     if (AppDB && CryptoUtils && user.emailHash && user.emailHash !== "guest_vault_default") {
       try {
-        const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+        let vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+        if (!vaultFile || typeof vaultFile !== 'object') vaultFile = { content: {}, sha: null };
+        if (!vaultFile.content || typeof vaultFile.content !== 'object') vaultFile.content = {};
         vaultFile.content.profiles = await CryptoUtils.encrypt(newProfiles);
         await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
       } catch (err) {}
@@ -406,7 +441,9 @@ export default function App() {
     if (AppDB && CryptoUtils && user.emailHash && user.emailHash !== "guest_vault_default") {
       settingsSaveChain.current = settingsSaveChain.current.catch(() => {}).then(async () => {
         try {
-          const vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+          let vaultFile = await AppDB.getFile(`gl_vault_${user.emailHash}.json`);
+          if (!vaultFile || typeof vaultFile !== 'object') vaultFile = { content: {}, sha: null };
+          if (!vaultFile.content || typeof vaultFile.content !== 'object') vaultFile.content = {};
           vaultFile.content.settings = await CryptoUtils.encrypt(ns);
           await AppDB.saveFile(`gl_vault_${user.emailHash}.json`, vaultFile.content, vaultFile.sha);
         } catch (err) {}
@@ -487,6 +524,11 @@ export default function App() {
   const AdminAuthModal = (window as any).AdminAuthModal;
   const AdminConsoleModal = (window as any).AdminConsoleModal;
   const GhostPDFReport = (window as any).GhostPDFReport;
+  const LanguageSelector = (window as any).LanguageSelector;
+
+  if (settings && typeof window !== 'undefined') {
+    (window as any).getSettings = () => settings;
+  }
 
   const activeChart = activeProfile ? charts[activeProfile.id] : null;
 
@@ -559,12 +601,31 @@ export default function App() {
             The Astrological Synthesis Engine. Connect your Cloud Vault to access predictive horoscopes, offline biorhythms, and personalized Vedic insights.
           </p>
           
-          <button 
-            onClick={() => setShowAuthModal(true)} 
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-xl transition font-medium flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20"
-          >
-            Sign In / Create Vault
-          </button>
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => setShowAuthModal(true)} 
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3.5 rounded-xl transition font-medium flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 font-mono text-xs"
+            >
+              Sign In / Connect Cloud Vault
+            </button>
+            <button 
+              onClick={() => {
+                const guestUser = {
+                  email: "guest@grahaledger.vault",
+                  emailHash: "guest_vault_default",
+                  profiles: SEED_PROFILES,
+                  settings: { aiModel: "auto", monthSystem: "amanta", kundaliStyle: "north", apiKeys: {} },
+                  mfaEnabled: false
+                };
+                try { localStorage.setItem("gl_active_user", JSON.stringify(guestUser)); } catch (e) {}
+                setUser(guestUser);
+                setActiveProfileId(SEED_PROFILES[0].id);
+              }} 
+              className="w-full bg-[#18181b] hover:bg-[#27272a] text-slate-300 hover:text-white px-6 py-3 rounded-xl transition font-medium flex items-center justify-center gap-2 border border-[#27272a] font-mono text-xs"
+            >
+              Explore Demo Vault / Continue as Guest →
+            </button>
+          </div>
         </div>
 
         {showAuthModal && AuthModal && (
@@ -642,7 +703,7 @@ export default function App() {
       )}
 
       {/* Bento Header */}
-      <header className="sticky top-0 z-30 p-4 pb-0 max-w-6xl mx-auto">
+      <header className="sticky top-0 z-30 p-4 pb-0 max-w-7xl 2xl:max-w-[1536px] mx-auto">
         <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-3.5 sm:p-4 shadow-2xl flex flex-wrap justify-between items-center gap-3 transition hover:border-[#3f3f46]">
           <div className="flex items-center gap-3.5">
             <SageLogo size={38} />
@@ -655,7 +716,7 @@ export default function App() {
               </div>
               <p className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                {user.email || "Active Engine"}
+                {user?.email || "Active Engine"}
               </p>
             </div>
           </div>
@@ -663,10 +724,12 @@ export default function App() {
           
           <div className="flex items-center gap-2 flex-wrap">
             <PWAInstallButton />
-            <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] rounded-xl px-2 py-1 relative">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" className="text-slate-400 absolute left-2 pointer-events-none"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM41.37,136H94.12a321.43,321.43,0,0,0,4.8,56.28A88.13,88.13,0,0,1,41.37,136ZM128,215.89a263.26,263.26,0,0,1-12.87-23.61c-3.13-6.62-5.75-13.88-7.81-20.28h41.36c-2.06,6.4-4.68,13.66-7.81,20.28A263.26,263.26,0,0,1,128,215.89ZM101.44,152A305.21,305.21,0,0,1,96.2,128a305.21,305.21,0,0,1,5.24-24h53.12a305.21,305.21,0,0,1,5.24,24,305.21,305.21,0,0,1-5.24,24Zm55.64,40.28a321.43,321.43,0,0,0,4.8-56.28h52.75A88.13,88.13,0,0,1,157.08,192.28ZM214.63,120H161.88a321.43,321.43,0,0,0-4.8-56.28A88.13,88.13,0,0,1,214.63,120ZM98.92,63.72a321.43,321.43,0,0,0-4.8,56.28H41.37A88.13,88.13,0,0,1,98.92,63.72ZM128,40.11a263.26,263.26,0,0,1,12.87,23.61c3.13,6.62,5.75,13.88,7.81,20.28H115.32c2.06-6.4,4.68-13.66,7.81-20.28A263.26,263.26,0,0,1,128,40.11Z"></path></svg>
-              <GoogleTranslate />
-            </div>
+            {LanguageSelector ? <LanguageSelector /> : (
+              <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] rounded-xl px-2 py-1 relative">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 256 256" className="text-slate-400 absolute left-2 pointer-events-none"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM41.37,136H94.12a321.43,321.43,0,0,0,4.8,56.28A88.13,88.13,0,0,1,41.37,136ZM128,215.89a263.26,263.26,0,0,1-12.87-23.61c-3.13-6.62-5.75-13.88-7.81-20.28h41.36c-2.06,6.4-4.68,13.66-7.81,20.28A263.26,263.26,0,0,1,128,215.89ZM101.44,152A305.21,305.21,0,0,1,96.2,128a305.21,305.21,0,0,1,5.24-24h53.12a305.21,305.21,0,0,1,5.24,24,305.21,305.21,0,0,1-5.24,24Zm55.64,40.28a321.43,321.43,0,0,0,4.8-56.28h52.75A88.13,88.13,0,0,1,157.08,192.28ZM214.63,120H161.88a321.43,321.43,0,0,0-4.8-56.28A88.13,88.13,0,0,1,214.63,120ZM98.92,63.72a321.43,321.43,0,0,0-4.8,56.28H41.37A88.13,88.13,0,0,1,98.92,63.72ZM128,40.11a263.26,263.26,0,0,1,12.87,23.61c3.13,6.62,5.75,13.88,7.81,20.28H115.32c2.06-6.4,4.68-13.66,7.81-20.28A263.26,263.26,0,0,1,128,40.11Z"></path></svg>
+                <GoogleTranslate />
+              </div>
+            )}
 
             {profiles.length > 0 && (
               <div className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] rounded-xl px-2 py-1">
@@ -687,16 +750,16 @@ export default function App() {
 
             <button
               onClick={() => handleOpenEdit({})}
-              title="Add New Astrological Profile"
+              title={tr("addProfile", "Add Profile")}
               className="flex items-center gap-1 px-3 py-2 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-indigo-400 hover:text-white text-xs font-mono"
             >
               <Icon name="user-plus" size={15} />
-              <span className="hidden sm:inline">Add Profile</span>
+              <span className="hidden sm:inline">{tr("addProfile", "Add Profile")}</span>
             </button>
 
             <button
               onClick={() => setShowSettings(true)}
-              title="Astrological Engine Settings"
+              title={tr("settings", "Vault Settings")}
               className="p-2 rounded-xl border border-[#27272a] bg-[#09090b] hover:bg-[#27272a] transition text-slate-300 hover:text-white"
             >
               <Icon name="gear" size={16} />
@@ -721,7 +784,7 @@ export default function App() {
             {user && (
               <button
                 onClick={logoutUser}
-                title="Sign Out"
+                title={tr("signOut", "Sign Out")}
                 className="p-2 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 transition text-red-400"
               >
                 <Icon name="sign-out" size={16} />
@@ -732,7 +795,7 @@ export default function App() {
       </header>
 
       {/* Main Tab View */}
-      <main className="mx-auto max-w-6xl px-4 py-5 relative z-10">
+      <main className="mx-auto max-w-7xl 2xl:max-w-[1536px] px-4 py-5 relative z-10">
         {activeProfile && TabOrchestrator ? (
           <TabOrchestrator
             pr={activeProfile}
@@ -746,6 +809,7 @@ export default function App() {
             u={user}
             setU={setUser}
             updateSettings={updateSettings}
+            lang={lang}
           />
         ) : (
           <div className="p-8 text-center text-slate-400 bg-[#18181b] rounded-3xl border border-[#27272a]">
@@ -986,6 +1050,7 @@ export default function App() {
       {/* Hidden PDF Canvas Render Target */}
       {activeProfile && activeChart && GhostPDFReport && (
         <GhostPDFReport
+          emHash={user?.emailHash || "guest_vault_default"}
           profile={activeProfile}
           ch={activeChart}
           bioScores={(window as any).bio ? (window as any).bio(activeProfile.dob, date, activeProfile.utcOffset) : { p: 0, e: 0, i: 0 }}

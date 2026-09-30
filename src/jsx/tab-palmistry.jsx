@@ -17,7 +17,8 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
     const loadHistory = async () => {
       try {
         const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`);
-        const decH = typeof hFile.content.h === "string" ? await window.CryptoUtils.decrypt(hFile.content.h) : hFile.content.h || [];
+        const rawH = hFile?.content?.h;
+        const decH = typeof rawH === "string" ? await window.CryptoUtils.decrypt(rawH) : rawH || [];
         if (isMounted && decH && decH.length > 0) setChat(decH);
       } catch (e) {}
     };
@@ -26,7 +27,9 @@ window.PalmistryTab = ({ pr, settings, emHash }) => {
   }, [emHash]);
   const saveHistory = async (newChat) => {
     try {
-      const hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`);
+      let hFile = await window.AppDB.getFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`);
+      if (!hFile || typeof hFile !== 'object') hFile = { content: {}, sha: null };
+      if (!hFile.content || typeof hFile.content !== 'object') hFile.content = {};
       hFile.content.h = await window.CryptoUtils.encrypt(newChat);
       await window.AppDB.saveFile(`gl_palmistry_${emHash}_${pr?.id || "default"}.json`, hFile.content, hFile.sha);
     } catch (e) {}

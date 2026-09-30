@@ -2,7 +2,7 @@
 var React = window.React;
 var { useState, useEffect } = window.React;
 
-window.WeekTab = ({ pr, ch }) => {
+window.WeekTab = ({ pr, ch, settings, emHash }) => {
   const [forecast, setForecast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -35,12 +35,13 @@ window.WeekTab = ({ pr, ch }) => {
           
           let extContext = "";
           try {
-             const tarot = await window.VaultHistoryService.getLogs("tarot", window.localStorage.getItem('vault_emHash'), pr?.id || "default");
-             const recentTarot = tarot.filter(t => Date.now() - new Date(t.ts).getTime() <= 7 * 24 * 60 * 60 * 1000);
+             const activeEm = emHash || (window.localStorage ? window.localStorage.getItem('vault_emHash') : null) || "guest_vault_default";
+             const tarot = await window.VaultHistoryService.getLogs("tarot", activeEm, pr?.id || "default");
+             const recentTarot = (tarot || []).filter(t => Date.now() - new Date(t.ts).getTime() <= 7 * 24 * 60 * 60 * 1000);
              if (recentTarot.length) extContext += "Recent Tarot: " + recentTarot.map(t => t.summary || t.reading).join(" | ") + "\n";
              
-             const palm = await window.VaultHistoryService.getLogs("palmistry", window.localStorage.getItem('vault_emHash'), pr?.id || "default");
-             const recentPalm = palm.filter(t => Date.now() - new Date(t.ts).getTime() <= 7 * 24 * 60 * 60 * 1000);
+             const palm = await window.VaultHistoryService.getLogs("palmistry", activeEm, pr?.id || "default");
+             const recentPalm = (palm || []).filter(t => Date.now() - new Date(t.ts).getTime() <= 7 * 24 * 60 * 60 * 1000);
              if (recentPalm.length) extContext += "Recent Palmistry: " + recentPalm.map(p => p.summary).join(" | ") + "\n";
           } catch(e) {}
           
@@ -50,8 +51,9 @@ ${extContext}
 Format your response exactly as a JSON object with 3 keys: "theme" (overall 7 day theme), "career" (career advice), "home" (home/relationship advice). Do not include markdown codeblocks.`;
 
           let generatedForecast = null;
+          const activeSettings = settings || (window.getSettings ? window.getSettings() : {});
           if (window.executeMultiProviderAI) {
-              const aiRes = await window.executeMultiProviderAI(prompt, window.getSettings ? window.getSettings() : {}, "You are an expert Vedic astrologer generating a JSON forecast.");
+              const aiRes = await window.executeMultiProviderAI(prompt, activeSettings, "You are an expert Vedic astrologer generating a JSON forecast.");
               if (aiRes && aiRes.text) {
                  try {
                      generatedForecast = JSON.parse(aiRes.text.replace(/```json/g, '').replace(/```/g, '').trim());
@@ -84,7 +86,7 @@ Format your response exactly as a JSON object with 3 keys: "theme" (overall 7 da
     if (ch) fetchWeeklyAI();
   }, [ch]);
 
-  if (!ch) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
+  if (!ch || !pr) return <div className="p-10 text-center t50 text-sm font-mono">Awaiting Astral Data...</div>;
   const topPlanet = Object.entries(ch.shadbala || {}).sort((a,b)=>b[1]-a[1])[0]?.[0] || "Sun";
 
   return (

@@ -2,7 +2,16 @@
 var React = window.React;
 var { useState, useEffect } = window.React;
 
-window.RemediesTab = ({ pr, ch, date }) => {
+window.RemediesTab = ({ pr, ch, date, lang }) => {
+  const [currentLang, setCurrentLang] = useState(() => lang || (window.getLanguage ? window.getLanguage() : "en"));
+  useEffect(() => {
+    const handleLangChange = (e) => setCurrentLang(e.detail || (window.getLanguage ? window.getLanguage() : "en"));
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => window.removeEventListener('languageChanged', handleLangChange);
+  }, []);
+  const activeLang = lang || currentLang;
+  const tr = (k, def) => (window.t ? window.t(k, activeLang, def) : (def || k));
+
   const [checklist, setChecklist] = useState({});
 
   useEffect(() => {
@@ -61,7 +70,7 @@ window.RemediesTab = ({ pr, ch, date }) => {
         <div className="flex justify-between items-start mb-3">
           <div>
             <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <span style={{color: info.color}}>{info.symbol}</span> {title}: {planet}
+              <span style={{color: info.color}}>{info.symbol}</span> {title}: {tr(planet, planet)}
             </h4>
             <p className="text-[10px] text-slate-400 font-mono mt-0.5">{context}</p>
           </div>
@@ -97,18 +106,18 @@ window.RemediesTab = ({ pr, ch, date }) => {
           <window.Icon name="sparkle" size={20} weight="fill" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight">Daily Remedies & Upayas</h2>
+          <h2 className="text-xl font-bold text-white tracking-tight">{tr('dailyRemedies', 'Daily Remedies & Upayas')}</h2>
           <p className="text-xs text-slate-400 font-mono mt-1">Checklist for {date.toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {getRemedyCard("Ruling Day Planet", dayRuler, "The cosmic governor of today's energy.", "day")}
-        {getRemedyCard("Active Antardasha", activeAntar, `Your current sub-cycle under ${activeMaha} Mahadasha.`, "dasha")}
+        {getRemedyCard("Active Antardasha", activeAntar, `Your current sub-cycle under ${tr(activeMaha, activeMaha)} Mahadasha.`, "dasha")}
       </div>
       
       <div className="mt-6">
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Natal Weakness (Shadbala)</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">{tr('shadbalaPower', 'Natal Weakness (Shadbala)')}</h3>
         {getRemedyCard("Lifelong Focus", weakPlanet, "The planet with the lowest Shadbala score in your birth chart, requiring consistent effort.", "natal")}
       </div>
     </div>

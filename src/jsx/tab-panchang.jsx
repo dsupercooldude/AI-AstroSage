@@ -1,6 +1,15 @@
 var { useState, useEffect } = window.React;
 
-window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
+window.PanchangTab = ({ d, setDate, p, utc, settings, lang }) => {
+  const [currentLang, setCurrentLang] = useState(() => lang || (window.getLanguage ? window.getLanguage() : "en"));
+  useEffect(() => {
+    const handleLangChange = (e) => setCurrentLang(e.detail || (window.getLanguage ? window.getLanguage() : "en"));
+    window.addEventListener('languageChanged', handleLangChange);
+    return () => window.removeEventListener('languageChanged', handleLangChange);
+  }, []);
+  const activeLang = lang || currentLang;
+  const tr = (k, def) => (window.t ? window.t(k, activeLang, def) : (def || k));
+
   const { Icon, PLANET_INFO } = window;
   const [liveValidated, setLiveValidated] = useState(false);
   const [apiData, setApiData] = useState(null);
@@ -91,7 +100,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
           <div className="relative z-10 w-full text-center md:text-left">
             {window.DataConfidenceBadge && <window.DataConfidenceBadge localData={pan} context="Panchang" />}
             <span style={{ color: 'var(--theme-accent)' }} className="font-mono text-[9px] uppercase tracking-[0.2em]">Drik Aligned Ephemeris</span>
-            <h2 style={{ color: 'var(--theme-accent-light)' }} className="flex justify-between items-center w-full font-serif text-2xl mt-0.5 font-bold"><span>Vedic Panchang & Muhurtas</span> <window.SectionConfidence score={98} type="math" label="Vedic Math" /></h2>
+            <h2 style={{ color: 'var(--theme-accent-light)' }} className="flex justify-between items-center w-full font-serif text-2xl mt-0.5 font-bold"><span>{tr('panchangMuhurta', 'Vedic Panchang & Muhurtas')}</span> <window.SectionConfidence score={98} type="math" label={tr('vedicMath', 'Vedic Math')} /></h2>
             <div className="text-[11px] font-mono t60 mt-1">
               Vikram Samvat {pan.vikram || "—"} · Saka Samvat {pan.saka || "—"} · Masa: {pan.masa || "—"}
             </div>
@@ -181,11 +190,11 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
 
         {/* PRIMARY PANCHANG ELEMENTS */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-4 grid grid-cols-2 gap-2.5 text-xs shadow-xl">
-          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">1. Tithi</span><span className="text-indigo-100 font-bold text-base font-serif">{apiData?.tithi || (pan.paksha + " " + pan.tithi)}</span></div>
-          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">2. Vaar (Day)</span><span className="text-indigo-100 font-bold text-base font-serif">{d.toLocaleDateString("en-US", { weekday: "long" })}</span></div>
-          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">3. Nakshatra</span><span className="text-indigo-100 font-bold text-base font-serif">{pan.nak || "—"}</span></div>
-          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">4. Yoga</span><span className="text-indigo-100 font-bold text-base font-serif">{pan.yoga || "—"}</span></div>
-          <div className="col-span-2 p-3 bg-black/30 rounded-xl border border-[#27272a] flex justify-between items-center"><span className="t50 font-mono text-[9px] uppercase">5. Karana</span><span className={pan.karana?.includes("Bhadra") || pan.karana?.includes("Vishti") ? "text-red-400 font-bold" : "t100 font-bold"}>{pan.karana || "—"}</span></div>
+          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">1. {tr('tithi', 'Tithi')}</span><span className="text-indigo-100 font-bold text-base font-serif">{apiData?.tithi || (pan.paksha + " " + pan.tithi)}</span></div>
+          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">2. {tr('vaar', 'Vaar (Day)')}</span><span className="text-indigo-100 font-bold text-base font-serif">{d.toLocaleDateString("en-US", { weekday: "long" })}</span></div>
+          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">3. {tr('nakshatra', 'Nakshatra')}</span><span className="text-indigo-100 font-bold text-base font-serif">{pan.nak || "—"}</span></div>
+          <div className="p-4 bg-indigo-950/30 rounded-2xl border border-indigo-500/20 shadow-inner hover:bg-indigo-900/40 transition"><span className="text-indigo-300/70 block font-mono text-[10px] uppercase font-bold tracking-wider mb-1">4. {tr('yoga', 'Yoga')}</span><span className="text-indigo-100 font-bold text-base font-serif">{pan.yoga || "—"}</span></div>
+          <div className="col-span-2 p-3 bg-black/30 rounded-xl border border-[#27272a] flex justify-between items-center"><span className="t50 font-mono text-[9px] uppercase">5. {tr('karana', 'Karana')}</span><span className={pan.karana?.includes("Bhadra") || pan.karana?.includes("Vishti") ? "text-red-400 font-bold" : "t100 font-bold"}>{pan.karana || "—"}</span></div>
         </div>
 
       </div>
@@ -193,27 +202,27 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
       <div className="lg:col-span-7 space-y-6">
         {/* MUHURTAS */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 space-y-4 shadow-xl">
-          <h3 className="font-serif text-sm text-white flex justify-between items-center w-full"><span>Muhurta Windows</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
+          <h3 className="font-serif text-sm text-white flex justify-between items-center w-full"><span>{tr('muhurtaWindows', 'Muhurta Windows')}</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {pan.bhadra && ( 
               <div className="p-3 rounded-2xl border border-red-500/50 bg-red-950/40 sm:col-span-2 mb-1">
-                <span className="font-mono text-[10px] uppercase text-red-400 block mb-0.5 font-bold">⚠️ Bhadra Kaal (Vishti Karana)</span>
+                <span className="font-mono text-[10px] uppercase text-red-400 block mb-0.5 font-bold">⚠️ {tr('bhadraKaal', 'Bhadra Kaal (Vishti Karana)')}</span>
                 <span className="font-mono text-sm font-bold block mb-1">{fm(pan.bhadra?.s)} - {fm(pan.bhadra?.e)}</span>
                 <span className="text-[10px] t85">Highly inauspicious. Avoid starting new commercial contracts during this window.</span>
               </div> 
             )}
-            <div className="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-950/20"><span className="font-mono text-[9px] uppercase text-emerald-400 block mb-0.5">Abhijit (Auspicious)</span><span className="font-mono text-sm font-bold">{fm(pan.abh?.s)} - {fm(pan.abh?.e)}</span></div>
-            <div className="p-3 rounded-2xl border border-blue-500/30 bg-blue-950/20"><span className="font-mono text-[9px] uppercase text-blue-400 block mb-0.5">Brahma Muhurta (Meditative)</span><span className="font-mono text-sm font-bold">{fm(pan.brahma?.s)} - {fm(pan.brahma?.e)}</span></div>
-            <div className="p-3 rounded-2xl border border-red-500/30 bg-red-950/20"><span className="font-mono text-[9px] uppercase text-red-400 block mb-0.5">Rahu Kaalam (Avoid Starts)</span><span className="font-mono text-sm font-bold">{fm(pan.rahu?.s)} - {fm(pan.rahu?.e)}</span></div>
-            <div className="p-3 rounded-2xl border border-orange-500/30 bg-orange-950/20"><span className="font-mono text-[9px] uppercase text-orange-400 block mb-0.5">Yamaganda</span><span className="font-mono text-sm font-bold">{fm(pan.yamaganda?.s)} - {fm(pan.yamaganda?.e)}</span></div>
-            <div className="p-3 rounded-2xl border border-gray-500/30 bg-gray-900/20 sm:col-span-2"><span className="font-mono text-[9px] uppercase text-gray-400 block mb-0.5">Gulika Kaal</span><span className="font-mono text-sm font-bold">{fm(pan.gulika?.s)} - {fm(pan.gulika?.e)}</span></div>
+            <div className="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-950/20"><span className="font-mono text-[9px] uppercase text-emerald-400 block mb-0.5">{tr('abhijit', 'Abhijit (Auspicious)')}</span><span className="font-mono text-sm font-bold">{fm(pan.abh?.s)} - {fm(pan.abh?.e)}</span></div>
+            <div className="p-3 rounded-2xl border border-blue-500/30 bg-blue-950/20"><span className="font-mono text-[9px] uppercase text-blue-400 block mb-0.5">{tr('brahmaMuhurta', 'Brahma Muhurta (Meditative)')}</span><span className="font-mono text-sm font-bold">{fm(pan.brahma?.s)} - {fm(pan.brahma?.e)}</span></div>
+            <div className="p-3 rounded-2xl border border-red-500/30 bg-red-950/20"><span className="font-mono text-[9px] uppercase text-red-400 block mb-0.5">{tr('rahuKaal', 'Rahu Kaalam (Avoid Starts)')}</span><span className="font-mono text-sm font-bold">{fm(pan.rahu?.s)} - {fm(pan.rahu?.e)}</span></div>
+            <div className="p-3 rounded-2xl border border-orange-500/30 bg-orange-950/20"><span className="font-mono text-[9px] uppercase text-orange-400 block mb-0.5">{tr('yamaganda', 'Yamaganda')}</span><span className="font-mono text-sm font-bold">{fm(pan.yamaganda?.s)} - {fm(pan.yamaganda?.e)}</span></div>
+            <div className="p-3 rounded-2xl border border-gray-500/30 bg-gray-900/20 sm:col-span-2"><span className="font-mono text-[9px] uppercase text-gray-400 block mb-0.5">{tr('gulikaKaal', 'Gulika Kaal')}</span><span className="font-mono text-sm font-bold">{fm(pan.gulika?.s)} - {fm(pan.gulika?.e)}</span></div>
           </div>
         </div>
 
         {/* CHOGHADIYA (DAY & NIGHT) */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
           <div className="flex justify-between items-center mb-4">
-              <h3 className="font-serif text-sm text-amber-200 flex items-center gap-2"><span>Choghadiya Windows {apiData?.choghadiya ? "(Live Validated)" : ""}</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
+              <h3 className="font-serif text-sm text-amber-200 flex items-center gap-2"><span>{tr('choghadiyaWindows', 'Choghadiya Windows')} {apiData?.choghadiya ? "(Live Validated)" : ""}</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
               <button onClick={() => setShowNightChog(!showNightChog)} className="px-3 py-1 bg-black/40 border border-[#27272a] rounded-md text-[9px] uppercase font-mono tracking-widest text-white/70 hover:text-white transition flex items-center gap-1">
                   {showNightChog ? <><span className="text-amber-400">☀</span> Daytime</> : <><span className="text-blue-300">☽</span> Nighttime</>}
               </button>
@@ -224,7 +233,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
                 const isActive = currentChoghadiya && c.s.getTime() === currentChoghadiya.s.getTime() && c.e.getTime() === currentChoghadiya.e.getTime();
                 return (
                   <div key={i} className={`p-3 border rounded-xl text-[10px] flex flex-col justify-center shadow-inner ${isActive ? 'bg-amber-400/10 border-amber-400/50' : 'bg-black/40 border-[#27272a]'}`}>
-                    <span style={{ color: c.c }} className="font-bold text-xs block mb-0.5 notranslate">{c.n}</span>
+                    <span style={{ color: c.c }} className="font-bold text-xs block mb-0.5 notranslate">{tr(c.n, c.n)}</span>
                     <span className="t50 text-[8px] font-mono uppercase">{c.d}</span>
                     <div className="font-mono t85 text-[10px] mt-2 bg-white/5 py-1 px-2 rounded">{fm(c.s)} - {fm(c.e)}</div>
                   </div>
@@ -237,7 +246,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
                 const isActive = currentChoghadiya && c.s.getTime() === currentChoghadiya.s.getTime() && c.e.getTime() === currentChoghadiya.e.getTime();
                 return (
                   <div key={i} className={`p-3 border rounded-xl text-[10px] flex flex-col justify-center shadow-inner opacity-80 ${isActive ? 'bg-blue-400/10 border-blue-400/50' : 'bg-black/40 border-[#27272a]'}`}>
-                    <span style={{ color: c.c }} className="font-bold text-xs block mb-0.5 notranslate">{c.n}</span>
+                    <span style={{ color: c.c }} className="font-bold text-xs block mb-0.5 notranslate">{tr(c.n, c.n)}</span>
                     <span className="t50 text-[8px] font-mono uppercase">{c.d}</span>
                     <div className="font-mono t85 text-[10px] mt-2 bg-white/5 py-1 px-2 rounded">{fm(c.s)} - {fm(c.e)}</div>
                   </div>
@@ -248,7 +257,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
           {currentChoghadiya && (
               <div className="mt-4 p-3 bg-black/40 border border-[#27272a] rounded-xl">
                   <div className="text-[9px] uppercase font-mono tracking-widest text-emerald-400 mb-1">Currently Active</div>
-                  <div style={{ color: currentChoghadiya.c }} className="font-bold text-sm mb-1 notranslate">{currentChoghadiya.n}</div>
+                  <div style={{ color: currentChoghadiya.c }} className="font-bold text-sm mb-1 notranslate">{tr(currentChoghadiya.n, currentChoghadiya.n)}</div>
                   <div className="text-[10px] font-mono text-white/60">{fm(currentChoghadiya.s)} – {fm(currentChoghadiya.e)}</div>
               </div>
           )}
@@ -256,7 +265,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
 
         {/* 24H PLANETARY HORAS */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
-          <h3 className="font-serif text-sm text-amber-200 mb-4 flex justify-between items-center w-full"><span>Planetary Hora Tracking (24H) {apiData?.hora ? "(Live Validated)" : ""}</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
+          <h3 className="font-serif text-sm text-amber-200 mb-4 flex justify-between items-center w-full"><span>{tr('planetaryHora', 'Planetary Hora Tracking (24H)')} {apiData?.hora ? "(Live Validated)" : ""}</span> {window.SectionConfidence && <window.SectionConfidence score={100} type="math" />}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {[...(pan.horas || []), ...(pan.nightHoras || [])].map((h, i) => {
                 const isActive = currentHora && h.p === currentHora.p && h.s && currentHora.s && new Date(h.s).getTime() === new Date(currentHora.s).getTime();
@@ -265,7 +274,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
                     <div className="flex items-center gap-2">
                       <span className="t50 font-mono text-[9px] mr-1">{i + 1}.</span>
                       <span className="text-lg opacity-80" style={{ color: PLANET_INFO?.[h.p]?.color }}>{PLANET_INFO?.[h.p]?.symbol}</span>
-                      <span style={{ color: PLANET_INFO?.[h.p]?.color }} className="font-bold tracking-wide notranslate">{h.p}</span>
+                      <span style={{ color: PLANET_INFO?.[h.p]?.color }} className="font-bold tracking-wide notranslate">{tr(h.p, h.p)}</span>
                     </div>
                     <div className="font-mono t85 text-[10px] bg-black/50 px-2 py-1 rounded border border-[#27272a]">{fm(h.s)} - {fm(h.e)}</div>
                   </div>
@@ -277,18 +286,18 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
         {/* 7-DAY PANCHANG TIME SERIES */}
         <div className="rounded-3xl border border-[#27272a] bg-[#18181b] p-5 shadow-xl">
           <h3 className="font-serif text-sm text-amber-200 mb-4 flex items-center gap-2">
-            <i className="flex justify-between items-center w-full ph ph-calendar-plus"></i> 7-Day Panchang Progression
+            <i className="ph ph-calendar-plus text-amber-400"></i> {tr('panchangProgression', '7-Day Panchang Progression')}
           </h3>
           <p className="text-xs t50 font-mono mb-4">Calculated locally via Drik Ephemeris Math Engine.</p>
           <div className="overflow-x-auto beauty-scroll pb-2">
             <table className="w-full min-w-max text-left text-xs font-mono whitespace-nowrap border-collapse">
               <thead>
                 <tr className="border-b border-[#27272a] t50 uppercase text-[9px]">
-                  <th className="pb-3 pr-4">Date</th>
-                  <th className="pb-3 pr-4">Tithi / Paksha</th>
-                  <th className="pb-3 pr-4">Nakshatra</th>
-                  <th className="pb-3 pr-4">Yoga</th>
-                  <th className="pb-3">Surya Udaya/Asta</th>
+                  <th className="pb-3 pr-4">{tr('targetDate', 'Date')}</th>
+                  <th className="pb-3 pr-4">{tr('tithi', 'Tithi')} / {tr('paksha', 'Paksha')}</th>
+                  <th className="pb-3 pr-4">{tr('nakshatra', 'Nakshatra')}</th>
+                  <th className="pb-3 pr-4">{tr('yoga', 'Yoga')}</th>
+                  <th className="pb-3">{tr('sunriseSunset', 'Surya Udaya/Asta')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -300,7 +309,7 @@ window.PanchangTab = ({ d, setDate, p, utc, settings }) => {
                     title="Click to jump to this date"
                   >
                     <td className={`py-3 pr-4 font-bold ${idx === 0 ? 'text-amber-300' : 'text-white'}`}>
-                      {idx === 0 ? 'Today' : day.dateStr}
+                      {idx === 0 ? tr('today', 'Today') : day.dateStr}
                     </td>
                     <td className="py-3 pr-4">{day.paksha} {day.tithi}</td>
                     <td className="py-3 pr-4 font-bold text-amber-100/80">{day.nak}</td>

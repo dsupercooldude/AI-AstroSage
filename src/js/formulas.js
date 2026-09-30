@@ -136,100 +136,23 @@ window.PLANET_INFO = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 2. MULTILINGUAL TRANSLATION ENGINE (ENGLISH, HINDI, SANSKRIT, GUJARATI)
+// 2. MULTILINGUAL TRANSLATION ENGINE (SAFE HOOK WITH I18N CORE)
 // ══════════════════════════════════════════════════════════════════════════════
 
-window.TRANSLATIONS = {
-  en: {
-    astrologyDasha: "Astrology & Dasha",
-    advancedReports: "Advanced Reports",
-    panchangMuhurta: "Panchang & Muhurta",
-    unionMilan: "Union Milan",
-    sevenDayAi: "7-Day AI",
-    thirtyDayMacro: "30-Day Macro",
-    vedicAiSage: "Vedic AI Sage",
-    natalMatrix: "Natal Matrix",
-    biorhythms: "Active Biorhythms",
-    planetaryLedger: "Planetary Ledger",
-    charaKarakas: "Jaimini Chara Karakas",
-    baladiAvasthas: "Baladi Avasthas (Maturity)",
-    shadbalaPower: "Shadbala & Planetary Power",
-    transits: "Gochara (Transit) Impact",
-    remedies: "Prescriptions & Remedies",
-    physical: "Physical",
-    emotional: "Emotional",
-    intellectual: "Intellectual",
-    spiritual: "Spiritual"
-  },
-  hi: {
-    astrologyDasha: "ज्योतिष एवं दशा",
-    advancedReports: "विस्तृत पत्रिका",
-    panchangMuhurta: "पंचांग एवं मुहूर्त",
-    unionMilan: "कुंडली मिलान",
-    sevenDayAi: "७-दिवसीय भविष्यवाणी",
-    thirtyDayMacro: "मासिक महा-रणनीति",
-    vedicAiSage: "वैदिक एआई ऋषि",
-    natalMatrix: "जन्म कुंडली विवरण",
-    biorhythms: "जैविक चक्र (बायोरिदम)",
-    planetaryLedger: "ग्रह स्थिति एवं स्पष्ट",
-    charaKarakas: "जैमिनी चर कारक",
-    baladiAvasthas: "ग्रहावस्था (बालादि)",
-    shadbalaPower: "षड्बल एवं ग्रह बल",
-    transits: "गोचर प्रभाव",
-    remedies: "उपाय एवं मंत्र",
-    physical: "शारीरिक",
-    emotional: "मानसिक/भावनात्मक",
-    intellectual: "बौद्धिक",
-    spiritual: "आध्यात्मिक"
-  },
-  sa: {
-    astrologyDasha: "ज्योतिषं दशा च",
-    advancedReports: "विस्तृत विवरणम्",
-    panchangMuhurta: "पञ्चाङ्गं मुहूर्ताश्च",
-    unionMilan: "अष्टकूट मिलानम्",
-    sevenDayAi: "सप्तदिवसीय फलम्",
-    thirtyDayMacro: "मासिक फलम्",
-    vedicAiSage: "वैदिक ज्ञान गुरुः",
-    natalMatrix: "जन्म चक्रम्",
-    biorhythms: "प्राण ऊर्जा चक्रम्",
-    planetaryLedger: "ग्रह स्थिति विवरणम्",
-    charaKarakas: "जैमिनी चरकारकाः",
-    baladiAvasthas: "बालादि ग्रहावस्थाः",
-    shadbalaPower: "षड्बलम्",
-    transits: "गोचर विचारः",
-    remedies: "दैवीय उपायाः",
-    physical: "शारीरिकम्",
-    emotional: "मानसिकम्",
-    intellectual: "बौद्धिकम्",
-    spiritual: "आध्यात्मिकम्"
-  },
-  gu: {
-    astrologyDasha: "જ્યોતિષ અને દશા",
-    advancedReports: "વિગતવાર પત્રિકા",
-    panchangMuhurta: "પંચાંગ અને મુહૂર્ત",
-    unionMilan: "કુંડળી મિલન",
-    sevenDayAi: "૭-દિવસીય રાશિફળ",
-    thirtyDayMacro: "માસિક વ્યૂહરચના",
-    vedicAiSage: "વૈદિક એઆઈ ઋષિ",
-    natalMatrix: "જન્મ કુંડળી",
-    biorhythms: "જૈવિક ચક્ર",
-    planetaryLedger: "ગ્રહ સ્થિતિ",
-    charaKarakas: "જૈમિની ચર કારક",
-    baladiAvasthas: "બાલાદિ અવસ્થાઓ",
-    shadbalaPower: "ષડબળ",
-    transits: "ગોચર પરિણામ",
-    remedies: "ઉપાય અને મંત્રો",
-    physical: "શારીરિક",
-    emotional: "ભાવનાત્મક",
-    intellectual: "બૌદ્ધિક",
-    spiritual: "આધ્યાત્મિક"
+const i18nT = (typeof window.t === "function" && window.t !== window.__t) ? window.t : null;
+
+window.__t = (key, lang) => {
+  if (i18nT) {
+    return i18nT(key, lang);
   }
+  const l = lang || (window.getLanguage ? window.getLanguage() : "en");
+  const dictionary = (window.TRANSLATIONS && (window.TRANSLATIONS[l] || window.TRANSLATIONS.en)) || {};
+  return dictionary[key] || (window.TRANSLATIONS?.en?.[key]) || key;
 };
 
-window.__t = (key, lang = "en") => {
-  const dictionary = window.TRANSLATIONS[lang] || window.TRANSLATIONS.en;
-  return dictionary[key] || window.TRANSLATIONS.en[key] || key;
-};
+if (!window.t || window.t === window.__t) {
+  window.t = i18nT || window.__t;
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 3. MATHEMATICAL & EPHEMERIS CORE
@@ -773,7 +696,14 @@ window.panchang = (dObj, ms = "amanta", utc = 5.5, geo = null) => {
 
 window.bio = (dob, td, utc) => {
   const [Y, M, D] = (dob || "2026-01-01").split("-").map(Number);
-  const eD = (Date.UTC(td.getFullYear(), td.getMonth(), td.getDate()) - Date.UTC(Y, M - 1, D)) / 86400000;
+  const target = td instanceof Date ? td : new Date(td || Date.now());
+  const year = isNaN(target.getFullYear()) ? new Date().getFullYear() : target.getFullYear();
+  const month = isNaN(target.getMonth()) ? new Date().getMonth() : target.getMonth();
+  const day = isNaN(target.getDate()) ? new Date().getDate() : target.getDate();
+  const birthYear = Y || 1995;
+  const birthMonth = (M || 1) - 1;
+  const birthDay = D || 1;
+  const eD = (Date.UTC(year, month, day) - Date.UTC(birthYear, birthMonth, birthDay)) / 86400000;
   return {
     p: Math.sin((2 * Math.PI * eD) / 23),
     e: Math.sin((2 * Math.PI * eD) / 28),

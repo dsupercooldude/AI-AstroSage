@@ -21,7 +21,8 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       try {
         if (!pr?.id) return;
         const sumFile = await window.AppDB.getFile(`gl_profile_summary_${emHash}_${pr.id}.json`);
-        const sstr = typeof sumFile.content.summary === "string" ? await window.CryptoUtils.decrypt(sumFile.content.summary) : sumFile.content.summary;
+        const rawSum = sumFile?.content?.summary;
+        const sstr = typeof rawSum === "string" ? await window.CryptoUtils.decrypt(rawSum) : rawSum;
         if (isMounted && sstr) setSummary(sstr);
       } catch (e) {}
     };
@@ -33,7 +34,8 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
     const loadHistory = async () => {
       try {
         const chatsFile = await AppDB.getFile(`gl_chats_${emHash}.json`);
-        const decH = typeof chatsFile.content.h === "string" ? await CryptoUtils.decrypt(chatsFile.content.h) : chatsFile.content.h || [];
+        const rawH = chatsFile?.content?.h;
+        const decH = typeof rawH === "string" ? await CryptoUtils.decrypt(rawH) : rawH || [];
         if (isMounted && decH) setH(decH);
       } catch (e) {}
     };
@@ -116,9 +118,10 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
       
       try {
         const chatsFile = await AppDB.getFile(`gl_chats_${emHash}.json`);
+        if (!chatsFile.content || typeof chatsFile.content !== 'object') chatsFile.content = {};
         chatsFile.content.h = await CryptoUtils.encrypt(nx);
         await AppDB.saveFile(`gl_chats_${emHash}.json`, chatsFile.content, chatsFile.sha);
-        await AppDB.appendGlobalAI(newQA);
+        if (AppDB.appendGlobalAI) await AppDB.appendGlobalAI(newQA);
       } catch (er) {}
     } catch (err) {
       ans = `System Error: ${err.message}.`;
@@ -309,7 +312,9 @@ window.AskTab = ({ emHash, set, pr, ch, date }) => {
                     if (res?.text) {
                       setSummary(res.text);
                       try {
-                         const sumFile = await window.AppDB.getFile(`gl_profile_summary_${emHash}_${pr?.id}.json`);
+                         let sumFile = await window.AppDB.getFile(`gl_profile_summary_${emHash}_${pr?.id}.json`);
+                         if (!sumFile || typeof sumFile !== 'object') sumFile = { content: {}, sha: null };
+                         if (!sumFile.content || typeof sumFile.content !== 'object') sumFile.content = {};
                          sumFile.content.summary = await window.CryptoUtils.encrypt(res.text);
                          await window.AppDB.saveFile(`gl_profile_summary_${emHash}_${pr?.id}.json`, sumFile.content, sumFile.sha);
                       } catch(e){}

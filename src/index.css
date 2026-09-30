@@ -1,5 +1,8 @@
 :root {
   color-scheme: dark;
+  --theme-accent: #4f46e5;
+  --theme-accent-light: #4f46e540;
+  --theme-accent-faint: #4f46e515;
 }
 @import "tailwindcss";
 body { overflow-x: hidden; }

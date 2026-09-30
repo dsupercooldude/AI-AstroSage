@@ -1,18 +1,21 @@
 window.AppDB = {
-    config: null,
+    config: { mode: "local" },
 
-    // ==========================================
-    // 🔒 AUTO-CONNECT CLOUD VAULT SECRETS
-    // ==========================================
-    // Split your token in half here to trick GitHub's secret scanners!
+    // Auto-connect token (Optional: user can set via settings modal)
     autoUser: "dsupercooldude",
     autoRepo: "AstroGrah",
-    autoTokenPart1: "ghp_9EnZgUlgWhZaeCP1",
-    autoTokenPart2: "3ahADcxI5CTfkj2rStph",
+    autoTokenPart1: "",
+    autoTokenPart2: "",
 
     loadConfig: async function() {
         try {
-            // 1. Try to load from browser memory first (Fastest)
+            // 1. If explicit local storage override is set, use local
+            if (localStorage.getItem('gl_use_local') === 'true') {
+                this.config = { mode: "local" };
+                return true;
+            }
+
+            // 2. Try to load saved config from browser storage
             const stored = localStorage.getItem('gl_db_config');
             if (stored) {
                 let decoded;
@@ -27,31 +30,12 @@ window.AppDB = {
                 }
             }
             
-            // 2. If memory is empty, inject the split token
-            if (this.autoTokenPart1 && this.autoTokenPart2) {
-                this.config = {
-                    owner: this.autoUser,
-                    repo: this.autoRepo,
-                    token: this.autoTokenPart1 + this.autoTokenPart2
-                };
-                if (window.CryptoUtils) {
-                    localStorage.setItem('gl_db_config', await window.CryptoUtils.encrypt(this.config));
-                } else {
-                    localStorage.setItem('gl_db_config', JSON.stringify(this.config));
-                }
-                return true;
-            }
-
-            // 3. Check for completely offline mode (or default to it to bypass setup wall)
-            if (localStorage.getItem('gl_use_local') === 'true' || (!this.autoTokenPart1 && !this.autoTokenPart2)) {
-                this.config = { mode: "local" };
-                localStorage.setItem('gl_use_local', 'true'); // Auto-set if bypassing
-                return true;
-            }
-
-            return false;
+            // 3. Fallback to local mode
+            this.config = { mode: "local" };
+            return true;
         } catch (e) {
-            return false;
+            this.config = { mode: "local" };
+            return true;
         }
     },
     
@@ -62,24 +46,38 @@ window.AppDB = {
     },
 
     clearConfig: function() {
-        this.config = null;
+        this.config = { mode: "local" };
         localStorage.removeItem('gl_db_config');
-        localStorage.removeItem('gl_use_local');
+        localStorage.setItem('gl_use_local', 'true');
     },
 
     enableLocal: function() {
         this.config = { mode: "local" };
         localStorage.setItem('gl_use_local', 'true');
+        localStorage.removeItem('gl_db_config');
     },
 
     callApi: async function(method, endpoint, body = null) {
-        if (!this.config) throw new Error("DB not configured");
+        if (!this.config) {
+            await this.loadConfig();
+        }
+        if (!this.config) {
+            this.config = { mode: "local" };
+        }
         
         // INTERCEPT LOCAL STORAGE MODE
         if (this.config.mode === "local") {
-            const localKey = `gl_local_${endpoint.split('/').pop()}`;
+            const baseName = endpoint.split('/').pop();
+            const localKey = `gl_local_${baseName}`;
             if (method === 'GET') {
-                const data = localStorage.getItem(localKey);
+                let data = localStorage.getItem(localKey);
+                if (!data) {
+                    const altKeys = [baseName, baseName.replace('.json', ''), `gl_${baseName.replace('.json', '')}`, `gl_local_${baseName.replace('gl_', '')}`];
+                    for (const k of altKeys) {
+                        const candidate = localStorage.getItem(k);
+                        if (candidate) { data = candidate; break; }
+                    }
+                }
                 if (!data) throw new Error("404");
                 return { content: data, sha: 'local-sha' };
             }
@@ -98,12 +96,24 @@ window.AppDB = {
         const req = { method, headers };
         if (body) req.body = JSON.stringify(body);
         
-        const res = await fetch(url, req);
-        if (!res.ok) {
-            if (res.status === 404) throw new Error("404");
-            throw new Error(`GitHub API Error: ${res.status}`);
+        try {
+            const res = await fetch(url, req);
+            if (!res.ok) {
+                if (res.status === 404) throw new Error("404");
+                if (res.status === 401 || res.status === 403) {
+                    console.warn("GitHub Auth 401/403: Auto-falling back to Local Vault Mode.");
+                    this.enableLocal();
+                    return this.callApi(method, endpoint, body);
+                }
+                throw new Error(`GitHub API Error: ${res.status}`);
+            }
+            return await res.json();
+        } catch (fetchErr) {
+            if (fetchErr.message === "404") throw fetchErr;
+            console.warn("GitHub API fetch failed, falling back to local mode", fetchErr);
+            this.enableLocal();
+            return this.callApi(method, endpoint, body);
         }
-        return await res.json();
     },
 
     hashKey: async function(email) {
@@ -113,41 +123,135 @@ window.AppDB = {
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     },
 
+    decodeData: function(raw) {
+        if (!raw) return {};
+        if (typeof raw === 'object') return raw;
+        if (typeof raw !== 'string') return {};
+        
+        // 1. Try directly parsing as JSON (if stored as plain JSON)
+        try {
+            const direct = JSON.parse(raw);
+            if (direct && typeof direct === 'object') return direct;
+        } catch (e) {}
+        
+        // 2. Try base64 decoding (standard and UTF-8 safe)
+        try {
+            const cleanB64 = raw.replace(/\s+/g, '');
+            const binStr = atob(cleanB64);
+            const bytes = new Uint8Array(binStr.length);
+            for (let i = 0; i < binStr.length; i++) {
+                bytes[i] = binStr.charCodeAt(i);
+            }
+            const utf8 = new TextDecoder('utf-8').decode(bytes);
+            const parsed = JSON.parse(utf8);
+            if (parsed && typeof parsed === 'object') return parsed;
+        } catch (decErr) {
+            try {
+                const alt = atob(raw.replace(/\s+/g, ''));
+                const p = JSON.parse(alt);
+                if (p && typeof p === 'object') return p;
+            } catch (err2) {}
+        }
+        
+        return {};
+    },
+
     getFile: async function(filename) {
         try {
-            const data = await this.callApi('GET', filename);
-            const rawContent = data.content ? atob(data.content) : "{}";
-            
-            let parsed;
-            try {
-                parsed = JSON.parse(rawContent);
-            } catch (jsonErr) {
-                // If it fails to parse as JSON, it might be raw encrypted string
-                parsed = rawContent;
+            if (!this.config) {
+                await this.loadConfig();
             }
-            
+            if (!this.config) {
+                this.config = { mode: "local" };
+            }
+            const data = await this.callApi('GET', filename);
+            const content = this.decodeData(data.content);
             return {
-                content: parsed,
-                sha: data.sha
+                content: content && typeof content === 'object' ? content : {},
+                sha: data.sha || 'local-sha'
             };
         } catch (e) {
-            if (e.message === "404") return { content: {}, sha: null };
-            throw e;
+            // Check if local storage has a copy under any standard or legacy key
+            try {
+                const baseName = filename.split('/').pop();
+                const possibleKeys = [
+                    `gl_local_${baseName}`,
+                    baseName,
+                    baseName.replace('.json', ''),
+                    `gl_${baseName.replace('.json', '')}`,
+                    `gl_local_${baseName.replace('gl_', '')}`
+                ];
+                for (const key of possibleKeys) {
+                    const localData = localStorage.getItem(key);
+                    if (localData) {
+                        const content = this.decodeData(localData);
+                        if (content && typeof content === 'object' && Object.keys(content).length > 0) {
+                            return { content, sha: 'local-sha' };
+                        }
+                    }
+                }
+            } catch(e2) {}
+            return { content: {}, sha: null };
         }
     },
 
     saveFile: async function(filename, contentObj, sha = null) {
+        if (!this.config) {
+            await this.loadConfig();
+        }
+        if (!this.config) {
+            this.config = { mode: "local" };
+        }
         const message = `Auto-update ${filename} [${new Date().toISOString()}]`;
         const strContent = typeof contentObj === 'string' ? contentObj : JSON.stringify(contentObj, null, 2);
         
-        // IMPORTANT: We must use a safe base64 encoding that handles UTF-8 characters properly
-        // btoa() fails on characters outside Latin1 (like hindi chars, emojis, or encrypted bytes)
+        // Safe chunked base64 encoding to prevent stack overflow on large datasets and handle UTF-8 correctly
         const utf8Bytes = new TextEncoder().encode(strContent);
-        const b64Content = btoa(String.fromCharCode(...utf8Bytes));
+        let binary = '';
+        const len = utf8Bytes.length;
+        const chunkSize = 8192;
+        for (let i = 0; i < len; i += chunkSize) {
+            const sub = utf8Bytes.subarray(i, Math.min(i + chunkSize, len));
+            for (let j = 0; j < sub.length; j++) {
+                binary += String.fromCharCode(sub[j]);
+            }
+        }
+        const b64Content = btoa(binary);
         
-        const body = { message, content: b64Content };
-        if (sha) body.sha = sha;
-        const res = await this.callApi('PUT', filename, body);
-        return res.content.sha;
+        try {
+            const body = { message, content: b64Content };
+            if (sha) body.sha = sha;
+            const res = await this.callApi('PUT', filename, body);
+            return res.content.sha;
+        } catch (err) {
+            // Local fallback
+            try {
+                const localKey = `gl_local_${filename.split('/').pop()}`;
+                localStorage.setItem(localKey, b64Content);
+            } catch(e) {}
+            return 'local-sha';
+        }
+    },
+
+    appendGlobalAI: async function(entry) {
+        try {
+            const fileName = 'gl_global_ai_logs.json';
+            const file = await this.getFile(fileName);
+            let logs = [];
+            if (file && file.content && Array.isArray(file.content.logs)) {
+                logs = file.content.logs;
+            }
+            logs.push(entry);
+            if (logs.length > 50) logs = logs.slice(-50);
+            const content = { logs };
+            await this.saveFile(fileName, content, file?.sha);
+        } catch (e) {
+            // Non-critical background logging
+        }
     }
 };
+
+// Immediate background initialization
+try {
+    window.AppDB.loadConfig();
+} catch(e) {}

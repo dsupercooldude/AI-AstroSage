@@ -396,3 +396,162 @@ window.SectionConfidence = ({ score, type = "math", label }) => {
         </span>
     );
 };
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VEDIC ACCURATE MULTILINGUAL & TRANSLATE HUB
+// ══════════════════════════════════════════════════════════════════════════════
+window.LanguageSelector = () => {
+    const { useState, useEffect, useRef } = window.React;
+    const [currentLang, setCurrentLang] = useState(() => (window.getLanguage ? window.getLanguage() : 'en'));
+    const [isOpen, setIsOpen] = useState(false);
+    const [enableGoogleTranslate, setEnableGoogleTranslate] = useState(false);
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        const handleLangChange = (e) => {
+            setCurrentLang(e.detail || (window.getLanguage ? window.getLanguage() : 'en'));
+        };
+        window.addEventListener('languageChanged', handleLangChange);
+        return () => window.removeEventListener('languageChanged', handleLangChange);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Google Translate script loader if user requests full-page auto-translate
+    useEffect(() => {
+        if (!enableGoogleTranslate) return;
+        if (!window.googleTranslateElementInit) {
+            window.googleTranslateElementInit = () => {
+                if (window.google && window.google.translate) {
+                    const el = document.getElementById('google_translate_slot');
+                    if (el) {
+                        el.innerHTML = '';
+                        new window.google.translate.TranslateElement({
+                            pageLanguage: 'en',
+                            includedLanguages: 'en,hi,sa,gu,mr,bn,te,ta,pa,ur,es,fr,de,ja,zh-CN',
+                            layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+                        }, 'google_translate_slot');
+                    }
+                }
+            };
+            const script = document.createElement('script');
+            script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+            script.async = true;
+            document.body.appendChild(script);
+        } else if (window.google && window.google.translate) {
+            const el = document.getElementById('google_translate_slot');
+            if (el) {
+                el.innerHTML = '';
+                new window.google.translate.TranslateElement({
+                    pageLanguage: 'en',
+                    includedLanguages: 'en,hi,sa,gu,mr,bn,te,ta,pa,ur,es,fr,de,ja,zh-CN',
+                    layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+                }, 'google_translate_slot');
+            }
+        }
+    }, [enableGoogleTranslate]);
+
+    const languages = window.SUPPORTED_LANGUAGES || [
+        { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+        { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+        { code: 'sa', name: 'Sanskrit', nativeName: 'संस्कृतम्', flag: '🕉️' },
+        { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', flag: '🇮🇳' },
+        { code: 'mr', name: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' },
+        { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇮🇳' },
+        { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
+        { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
+        { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+        { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷' },
+        { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
+    ];
+
+    const activeMeta = languages.find(l => l.code === currentLang) || languages[0];
+
+    const selectLanguage = (code) => {
+        if (window.setLanguage) {
+            window.setLanguage(code);
+        }
+        setCurrentLang(code);
+        setIsOpen(false);
+    };
+
+    return (
+        <div className="relative inline-block text-left notranslate" translate="no" ref={menuRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-1.5 bg-[#09090b] border border-[#27272a] hover:border-indigo-500/50 rounded-xl px-2.5 py-1.5 transition text-xs font-mono text-white shadow-sm"
+                title="Select Vedic Astrological Language"
+            >
+                <span className="text-sm">{activeMeta.flag}</span>
+                <span className="font-semibold text-slate-200">{activeMeta.nativeName}</span>
+                <span className="text-[10px] text-indigo-400 font-bold uppercase">({activeMeta.code})</span>
+                <i className={`ph ph-caret-${isOpen ? 'up' : 'down'} text-[10px] text-slate-400 ml-0.5`}></i>
+            </button>
+
+            {isOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#18181b] border border-[#27272a] p-2 shadow-2xl z-50 gl-fadein">
+                    <div className="px-2.5 py-1.5 border-b border-[#27272a] mb-1 flex justify-between items-center">
+                        <span className="text-[10px] font-mono uppercase font-bold text-indigo-400 tracking-wider">
+                            Vedic Astrological Translation
+                        </span>
+                        <span className="text-[9px] bg-indigo-500/10 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/20 font-mono">
+                            Accurate
+                        </span>
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1 py-1">
+                        {languages.map((item) => {
+                            const isSelected = item.code === currentLang;
+                            return (
+                                <button
+                                    key={item.code}
+                                    type="button"
+                                    onClick={() => selectLanguage(item.code)}
+                                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-mono transition ${
+                                        isSelected
+                                            ? 'bg-indigo-600 text-white font-bold shadow-md'
+                                            : 'text-slate-300 hover:bg-[#27272a] hover:text-white'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm">{item.flag}</span>
+                                        <div className="text-left leading-tight">
+                                            <div className="font-bold">{item.nativeName}</div>
+                                            <div className={`text-[10px] ${isSelected ? 'text-indigo-200' : 'text-slate-500'}`}>{item.name}</div>
+                                        </div>
+                                    </div>
+                                    {isSelected && <span className="text-xs">✓</span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#27272a] mt-1 px-1">
+                        <label className="flex items-center gap-2 cursor-pointer text-[10px] font-mono text-slate-400 hover:text-slate-200 select-none">
+                            <input
+                                type="checkbox"
+                                checked={enableGoogleTranslate}
+                                onChange={(e) => setEnableGoogleTranslate(e.target.checked)}
+                                className="rounded bg-black border-slate-700 text-indigo-600 focus:ring-0 cursor-pointer"
+                            />
+                            <span>Full-page Google Translate</span>
+                        </label>
+                        {enableGoogleTranslate && (
+                            <div id="google_translate_slot" className="mt-2 pt-1 border-t border-white/5"></div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
